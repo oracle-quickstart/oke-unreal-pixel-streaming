@@ -1,0 +1,8 @@
+{
+	"HttpPort": 3000,
+	"UseHTTPS": false,
+	"MatchmakerPort": 9999,
+	"LogToFile": false,
+  "enableRedirectionLinks": false,
+  "enableRESTAPI": true
+}

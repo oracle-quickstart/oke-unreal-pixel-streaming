@@ -1,0 +1,100 @@
+# ----------------------------------------------------------------------
+# Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+# The Universal Permissive License (UPL), Version 1.0
+# ----------------------------------------------------------------------
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: podproxy
+  labels:
+    app.kubernetes.io/name: podproxy
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: http
+  selector:
+    app: podproxy
+    app.kubernetes.io/name: podproxy
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: podproxy
+  labels:
+    app.kubernetes.io/name: podproxy
+spec:
+  selector:
+    matchLabels:
+      app: podproxy
+      app.kubernetes.io/name: podproxy
+  template:
+    metadata:
+      labels:
+        app: podproxy
+        app.kubernetes.io/name: podproxy
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9113"
+        sidecar.istio.io/rewriteAppHTTPProbers: "true"
+    spec:
+      # pod containers
+      containers:
+        # prometheus exporter
+        - name: metrics
+          image: nginx/nginx-prometheus-exporter:0.9.0
+          imagePullPolicy: Always
+          ports:
+            - name: metrics
+              containerPort: 9113
+          args:
+            - -nginx.scrape-uri=http://localhost:8888
+          resources:
+            requests:
+              cpu: 5m
+        # proxy UI
+        - name: proxy
+          image: podproxy
+          imagePullPolicy: Always
+          env:
+            # set the ns_resolver
+            - name: NS_RESOLVER
+              value: kube-dns.kube-system.svc.cluster.local
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: status
+              containerPort: 8888
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          resources:
+            limits:
+              cpu: 125m
+              memory: 128Mi
+            requests:
+              cpu: 50m
+              memory: 32Mi
+          securityContext:
+            capabilities:
+              drop:
+                - all
+              add:
+                - NET_BIND_SERVICE
+                - CHOWN
+                - SETGID
+                - SETUID
+          volumeMounts:
+            - mountPath: /tmp
+              name: tmp-volume
+      volumes:
+        - name: tmp-volume
+          emptyDir:
+            medium: Memory

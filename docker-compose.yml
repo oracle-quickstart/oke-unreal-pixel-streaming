@@ -1,0 +1,115 @@
+version: "3"
+services:
+
+  # subsystem router configuration (glue)
+  router:
+    image: traefik:v2.5
+    container_name: router
+    command:
+      # - --accesslog
+      - --api.insecure=true
+      - --entrypoints.http.address=:80
+      - --providers.file.directory=/config
+    environment:
+      - WEB_PATH_PREFIX=/
+      - SOCKET_PATH_PREFIX=/ws
+      - PLAYER_ADDRESS=player:8080
+      - MATCHMAKER_ADDRESS=matchmaker:3000
+      # enable proxy for testing
+      - PROXY_ENABLE=true
+      - PROXY_ADDRESS=pod-proxy:8080
+      - PROXY_PATH_PREFIX=/
+      - PROXY_HEADER_NAME=X-Proxy
+      - PROXY_AUTH_USERS=test:$$apr1$$fyf6DNyt$$oUgxHXVK5iD1b6U/zLTrr. # test/local
+    ports:
+      - 80:80
+      - 8080:8080
+    volumes:
+      - ./src/router/config/traefik.yml:/config/traefik.yml
+      - ./src/router/config/pod-proxy.yml:/config/pod-proxy.yml
+  
+  # forwarding proxy layer
+  pod-proxy:
+    build: ./src/proxy
+    container_name: proxy
+    restart: always
+    volumes:
+      - ./src/proxy/nginx/default.conf.tmpl:/etc/nginx/conf.d/default.conf.tmpl
+  
+  # web
+  player:
+    build: ./src/player
+    container_name: player
+    restart: always
+    volumes:
+      - ./src/player/web:/usr/share/nginx/html
+      - ./src/player/nginx/default.conf:/etc/nginx/conf.d/default.conf
+  
+  # cirrus
+  signalserver:
+    build: ./src/signalserver
+    container_name: signalserver
+    restart: always
+    ports:
+      - 4000:3000 # http & websocket (client is matchmaker)
+      - 4888:8888 # streamer connections (probably noop)
+      - 4900:9000 # metrics
+    volumes:
+      - ./src/signalserver:/app
+    entrypoint: node wrapper.js
+    command:
+      - --HttpPort=3000
+      - --StreamerPort=8888
+      - --UseHTTPS=0
+      - --UseMatchmaker=true
+      - --MatchmakerAddress=matchmaker
+      - --MatchmakerPort=9999
+      - --rtcConfigSvc=http://turn-api:3000
+      - --metricsPort=9000
+    depends_on:
+      - matchmaker
+
+  # cirrus
+  matchmaker:
+    build: ./src/matchmaker
+    container_name: matchmaker
+    restart: always
+    environment:
+      - DEBUG=true
+    ports:
+      - 3000:3000 # http & client websocket
+      - 3900:9000 # metrics
+    volumes:
+      - ./src/matchmaker:/app
+    entrypoint: node wrapper.js
+    command:
+      - --HttpPort=3000
+      - --MatchmakerPort=9999
+      - --UseHTTPS=0
+      - --metricsPort=9000
+
+  # start turn, even though it won't do much good locally
+  turn:
+    build: './src/turn'
+    container_name: turn
+    restart: always
+    environment:
+      - TURN_USER=foo
+      - TURN_PASS=bar
+    ports:
+      - 3478:3478
+
+  # turn api
+  turn-api:
+    build: ./src/turn-api
+    container_name: turn-api
+    restart: always
+    volumes:
+      - ./src/turn-api:/app
+      - ./src/turn-api/endpoints.example.json:/endpoints.json
+    environment:
+      - TURN_USER=foo
+      - TURN_PASS=bar
+      - ENDPOINT_FILE=/endpoints.json
+    ports:
+      - 3480:3000

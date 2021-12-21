@@ -1,0 +1,127 @@
+# ----------------------------------------------------------------------
+# Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+# The Universal Permissive License (UPL), Version 1.0
+# ----------------------------------------------------------------------
+
+# Create an internal service for the turn credentials/discovery
+apiVersion: v1
+kind: Service
+metadata:
+  name: turn
+  labels:
+    app.kubernetes.io/name: turn
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    app: turn-api
+    app.kubernetes.io/name: turn-api
+    
+---
+# The WebRTC TURN server (note that you will need TCP and UDP ports 3478 and 49152-65535 exposed for TURN relaying to function correctly)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: turn-api
+  labels:
+    app.kubernetes.io/name: turn-api
+    
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: turn-api
+      
+  template:
+    metadata:
+      labels:
+        app: turn-api
+        app.kubernetes.io/name: turn-api
+        
+    spec:
+      serviceAccountName: turn-svc-account
+      volumes:
+        - name: shared
+          emptyDir: {}
+      containers:
+        # endpoint aggregator sidecar
+        - name: aggregator
+          image: kubetools
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: shared
+              mountPath: /config
+          command: ["/bin/sh"]
+          resources:
+            requests:
+              cpu: 5m
+          args:
+            - -ec
+            - |
+              cat - | tee /tmp/run.sh <<EOF
+              # get available turn node ip addresses
+              kubectl get node -l app.pixel/turn=true -o json | \
+                jq -c -r '[.items[] | select(.spec.unschedulable != true) | .status.addresses[] | select(.type == "ExternalIP") | {ip: .address}]' \
+                > /config/endpoints.json
+              EOF
+              chmod +x /tmp/run.sh
+
+              while true; do
+                /tmp/run.sh || true
+                sleep 30
+              done
+        # turn api layer - this returns the RTCPeerConfiguration
+        - name: api
+          image: turn-api
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: shared
+              mountPath: /config
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          securityContext:
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 10001
+            capabilities:
+              drop:
+                - all
+              add:
+                - NET_BIND_SERVICE
+          env:
+            - name: PORT
+              value: "3000"
+            - name: ENDPOINT_FILE
+              value: "/config/endpoints.json"
+            - name: TURN_PORT
+              value: "3478"
+            - name: TURN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: turn-secret
+                  key: username
+            - name: TURN_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: turn-secret
+                  key: password
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          resources:
+            limits:
+              cpu: 40m
+              memory: 32Mi
+            requests:
+              cpu: 20m
+              memory: 16Mi

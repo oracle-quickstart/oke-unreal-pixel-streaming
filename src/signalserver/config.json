@@ -1,0 +1,19 @@
+{
+	"UseFrontend": false,
+	"UseMatchmaker": false,
+	"UseHTTPS": false,
+	"UseAuthentication": false,
+	"LogToFile": false,
+	"HomepageFile": null,
+	"AdditionalRoutes": {},
+	"EnableWebserver": false,
+	"MatchmakerAddress": "",
+	"MatchmakerPort": "9999",
+	"HttpPort": 80,
+	"HttpsPort": 443,
+	"StreamerPort": 8888,
+	"metricsPort": 9000,
+	"certificateDir": "./certificates",
+	"ueRestEndpoint": null,
+	"rtcConfigSvc": null
+}

@@ -1,0 +1,10 @@
+{
+  "name": "coturn-api",
+  "description": "coturn API and discovery service",
+  "version": "1.0.0",
+  "author": "Oracle",
+  "main": "main.js",
+  "scripts": {
+    "start": "node main.js"
+  }
+}

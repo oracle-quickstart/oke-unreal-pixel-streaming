@@ -1,0 +1,33 @@
+# ----------------------------------------------------------------------
+# Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+# The Universal Permissive License (UPL), Version 1.0
+# ----------------------------------------------------------------------
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+commonLabels:
+  app.kubernetes.io/component: turn
+
+resources:
+  - turn-rbac.yaml
+  - turn-daemonset.yaml
+  - turn-api.yaml
+
+# keep secrets/configmaps plain
+generatorOptions:
+  disableNameSuffixHash: true
+
+# secret generation
+# NOTE: WebRTC uses the long term credential mechanism
+secretGenerator:
+  - name: turn-secret
+    literals:
+      - username=turNd3moU43R
+      - password=turNd3moP45s
+
+# expose vars
+vars:
+  - name: TURN_API_SVC
+    objref:
+      apiVersion: v1
+      kind: Service
+      name: turn

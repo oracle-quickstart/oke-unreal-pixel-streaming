@@ -1,0 +1,11 @@
+{
+	"UseFrontend": false,
+	"UseMatchmaker": false,
+	"UseHTTPS": false,
+	"UseAuthentication": false,
+	"LogToFile": false,
+	"EnableWebserver": false,
+	"HomepageFile": null,
+	"HttpPort": 3000,
+	"StreamerPort": 8888
+}

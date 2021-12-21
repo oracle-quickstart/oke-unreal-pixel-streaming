@@ -1,0 +1,186 @@
+﻿<!-- Copyright Epic Games, Inc. All Rights Reserved. -->
+<!DOCTYPE HTML>
+<html>
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/png" sizes="96x96" href="images/favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/css/bootstrap.min.css" integrity="sha384-Smlep5jCw/wG7hdkwQ/Z5nLIefveQRIY9nfy6xoR1uRYBtpZgI6339F5dgvm/e9B" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.1.0/css/all.css" integrity="sha384-lKuwvrZot6UHsBSfcMvOkWwlCMgc0TaWr+30HWe3a4ltaBwTZhyTEggF5tJv8tbt" crossorigin="anonymous">
+    <link type="text/css" rel="stylesheet" href="player.css">
+    <link type="text/css" rel="stylesheet" href="custom.css">
+    <!-- <script src="/socket.io/socket.io.js"></script> -->
+    <script type="text/javascript" src="scripts/adapter.js"></script>
+    <script type="text/javascript" src="scripts/webRtcPlayer.js"></script>
+    <script type="text/javascript" src="scripts/app.js"></script>
+    <script type="text/javascript" src="custom.js"></script>
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <!-- For iPhone X the following makes it use the entire screen space for the webpage https://webkit.org/blog/7929/designing-websites-for-iphone-x/ -->
+    <meta name='viewport' content='initial-scale=1, viewport-fit=cover'>
+</head>
+
+<body onload="load(); CustomLoad()">
+    <!-- <div class="wrapper"> -->
+
+        <div id="playerUI">
+
+            <!-- <div class="row">
+                <div class="col"> -->
+                    <div id="player">
+                    </div>
+                    <div id="configuration">
+                        <div id="ck-fullscreen">
+                          <i id="fullscreen-img" class="fa fa-expand"></i>
+                        </div>
+                    </div>
+                <!-- </div>
+            </div> -->
+            <!-- <div class="text"></div> -->
+
+            <div id="overlay" class="overlay">
+              <div class="clearfix">
+                  <div id="qualityStatus" class="greyStatus">&#9679</div>
+                  <div id="overlayButton">+</div>
+              </div>
+              <div id="overlaySettings">
+
+                <div id="kickOthers">
+                  <div class="settings-text">Kick all other players</div>
+                  <label class="btn-overlay">
+                    <input type="button" id="kick-other-players-button" class="overlay-button btn-flat" value="Kick">
+                  </label>
+                </div>
+                <div id="fillWindow" hidden>
+                  <div class="settings-text">Enlarge Display to Fill Window</div>
+                  <label class="tgl-switch">
+                    <input type="checkbox" id="enlarge-display-to-fill-window-tgl" class="tgl tgl-flat" checked>
+                    <div class="tgl-slider"></div>
+                  </label>
+                </div>
+                <div id="qualityControlOwnership">
+                  <div class="settings-text">Quality control ownership</div>
+                  <label class="tgl-switch">
+                    <input type="checkbox" id="quality-control-ownership-tgl" class="tgl tgl-flat">
+                    <div class="tgl-slider"></div>
+                  </label>
+                </div>
+                <!-- hide these because they seem to break the streamer -->
+                <section id="encoderSettings" hidden>
+                  <div class="settings-text">Encoder Settings</div>
+                  <div id="encoderParamsContainer">
+                    <div class="form-group">
+                      <label for="encoder-rate-control" class="settings-text">Rate Control</label>
+                      <select class="form-control" id="encoder-rate-control">
+                        <option value="CBR" selected>CBR</option>
+                        <option value="VBR">VBR</option>
+                        <option value="ConstQP">ConstQP</option>
+                      </select>
+                      <br>
+                      <label for="encoder-target-bitrate-text">Target Bitrate (kbps)</label>
+                      <input type="number" class="form-control" id="encoder-target-bitrate-text" value="0" min="0" max="100000" /><br>
+                      <label for="encoder-max-bitrate-text">Max Bitrate (kbps)</label>
+                      <input type="number" class="form-control" id="encoder-max-bitrate-text" value="0" min="0" max="100000" /><br>
+                      <label for="encoder-min-qp-text">Min QP</label>
+                      <input type="number" class="form-control" id="encoder-min-qp-text" value="0" min="0" max="999" /><br>
+                      <label for="encoder-max-qp-text">Max QP</label>
+                      <input type="number" class="form-control" id="encoder-max-qp-text" value="0" min="0" max="999" /><br>
+                      <div class="settings-text">Filler Data</div>
+                      <label class="tgl-switch">
+                        <input type="checkbox" id="encoder-filler-data-tgl" class="tgl tgl-flat">
+                        <div class="tgl-slider"></div>
+                      </label>
+                      <br>
+                      <label for="encoder-multipass" class="settings-text">Multipass</label>
+                      <select class="form-control" id="encoder-multipass">
+                        <option value="DISABLED" selected>DISABLED</option>
+                        <option value="QUARTER">QUARTER</option>
+                        <option value="FULL">FULL</option>
+                      </select><br>
+                      <input id="encoder-params-submit" class="btn btn-primary btn-lg mt-3" type="button" value="Apply">
+                    </div>
+                  </div>
+                  <br>
+                </section>
+                
+                <!-- hide these because they seem to break the streamer -->
+                <section id="webRTCSettings" hidden>
+                  <div class="settings-text">WebRTC Settings</div>
+                  <div id="webrtcParamsContainer">
+                    <div class="form-group">
+                      <label for="webrtc-degradation-pref">Degradation Pref</label>
+                      <select class="form-control" id="webrtc-degradation-pref">
+                        <option value="BALANCED">BALANCED</option>
+                        <option value="MAINTAIN_FRAMERATE">MAINTAIN_FRAMERATE</option>
+                        <option value="MAINTAIN_RESOLUTION">MAINTAIN_RESOLUTION</option>
+                      </select><br>
+                      <label for="webrtc-max-fps-text">Max FPS</label>
+                      <input type="number" class="form-control" id="webrtc-max-fps-text" value="1" min="1" max="999" /><br>
+                      <label for="webrtc-min-bitrate-text">Min Bitrate (kbps)</label>
+                      <input type="number" class="form-control" id="webrtc-min-bitrate-text" value="0" min="0" max="100000" /><br>
+                      <label for="webrtc-max-bitrate-text">Max Bitrate (kbps)</label>
+                      <input type="number" class="form-control" id="webrtc-max-bitrate-text" value="0" min="0" max="100000" /><br>
+                      <label for="webrtc-low-qp-text">Low QP Threshold</label>
+                      <input type="number" class="form-control" id="webrtc-low-qp-text" value="0" min="0" max="999" /><br>
+                      <label for="webrtc-high-qp-text">High QP Threshold</label>
+                      <input type="number" class="form-control" id="webrtc-high-qp-text" value="0" min="0" max="999" /><br>
+                      <input id="webrtc-params-submit" class="btn btn-primary btn-lg mt-3" type="button" value="Apply">
+                    </div>
+                  </div>
+                </section>
+        
+                <div id="showFPS" hidden>
+                  <div class="settings-text">Show FPS</div>
+                  <label class="btn-overlay">
+                    <input type="button" id="show-fps-button" class="overlay-button btn-flat" value="Toggle">
+                  </label>
+                </div>
+                <div id="matchViewportResolution">
+                  <div class="settings-text">Match Viewport Resolution</div>
+                  <label class="tgl-switch">
+                    <input type="checkbox" id="match-viewport-res-tgl" class="tgl tgl-flat">
+                    <div class="tgl-slider"></div>
+                  </label>
+                </div>
+        
+                <div id="statsPanel">
+                  <div class="settings-text">Show Stats</div>
+                  <label class="tgl-switch">
+                    <input type="checkbox" id="show-stats-tgl" class="tgl tgl-flat" checked>
+                    <div class="tgl-slider"></div>
+                  </label>
+                  <div id="statsContainer" class="statsContainer">
+                    <div id="stats" class="stats"></div>
+                  </div>
+                  <br>
+                </div>
+                
+                <div id="latencyTest">
+                  <div class="settings-text">Latency Stats</div>
+                  <label class="btn-overlay">
+                    <input type="button" id="test-latency-button" class="overlay-button btn-flat" value="Test Latency">
+                  </label>
+                  <div id="latencyStatsContainer" class="statsContainer">
+                    <div id=LatencyStats class="stats">No stats yet...</div>
+                  </div>
+                </div>
+
+                
+                <div class="pt-3 pb-3">
+                  <img alt="Oracle" src="images/oracle.svg" />
+                </div>
+              </div>
+        </div>
+    <!-- </div> -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script> -->
+    <!-- <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/js/bootstrap.min.js" integrity="sha384-o+RDsa0aLu++PJvFqy8fFScvbHFLtbvScb8AjopnFD+iEQ7wo/CG0xlczd+2O/em" crossorigin="anonymous"></script> -->
+</body>
+</html>

@@ -1,0 +1,27 @@
+# ----------------------------------------------------------------------
+# Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+# The Universal Permissive License (UPL), Version 1.0
+# ----------------------------------------------------------------------
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+commonLabels:
+  app.kubernetes.io/component: routing
+
+resources:
+  - routing-traefik.yaml
+  - routing-pod-proxy.yaml
+  - routing-pod-proxy-configmap.yaml
+  - routing-hpa.yaml
+  - routing-ingress.yaml
+
+# keep secrets/configmaps plain
+generatorOptions:
+  disableNameSuffixHash: true
+
+# configmaps
+configMapGenerator:
+  # traefik 'http' endpoint config (see src/router/README.md)
+  - name: routing-traefik-config
+    files:
+      - config/traefik.yml
+      - config/pod-proxy.yml

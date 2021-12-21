@@ -1,0 +1,50 @@
+prometheus:
+  url: http://prometheus-operated.prometheus.svc
+  port: 9090
+
+rules:
+  custom:
+    # create a metric on the number of player connections
+    - seriesQuery: '{__name__=~"^signalserver_player_socket_connections$"}'
+      resources:
+        overrides:
+          namespace: {resource: "namespace"}
+          pod: {resource: "pod"}
+      name:
+        # matches: "^(.*)"
+        as: "stream_player_connections"
+      metricsQuery: (avg(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>))
+    # create a metric on the number of queued players
+    - seriesQuery: '{__name__=~"^matchmaker_player_queue_count$"}'
+      resources:
+        overrides:
+          namespace: {resource: "namespace"}
+          service: {resource: "service"}
+          pod: {resource: "pod"}
+      name:
+        # matches: "^(.*)_count"
+        as: "pixelstream_player_queue_count"
+      metricsQuery: (sum(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>))
+    # create a metric on the number of available (free) pixel streaming pods
+    - seriesQuery: '{__name__=~"^matchmaker_streamer_available_count$"}'
+      resources:
+        overrides:
+          namespace: {resource: "namespace"}
+          service: {resource: "service"}
+          pod: {resource: "pod"}
+      name:
+        # matches: "^(.*)_count"
+        as: "pixelstream_available_count"
+      metricsQuery: (sum(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>))
+    
+    # create a metric on the ratio of players => available streams
+    - seriesQuery: '{__name__=~"^matchmaker_streamer_demand_ratio$"}'
+      resources:
+        overrides:
+          namespace: {resource: "namespace"}
+          service: {resource: "service"}
+          pod: {resource: "pod"}
+      name:
+        # matches: "^(.*)_count"
+        as: "player_stream_pool_ratio"
+      metricsQuery: (avg(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>))

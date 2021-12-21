@@ -1,0 +1,98 @@
+# ----------------------------------------------------------------------
+# Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+# The Universal Permissive License (UPL), Version 1.0
+# ----------------------------------------------------------------------
+
+# The WebRTC TURN server (note that you will need TCP and UDP ports 3478 and 49152-65535 exposed for TURN relaying to function correctly)
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: turn
+  labels:
+    app.kubernetes.io/name: turn
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: turn
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
+      labels:
+        app: turn
+        version: 0.0.1
+        app.kubernetes.io/name: turn
+    spec:
+      serviceAccountName: turn-svc-account
+      terminationGracePeriodSeconds: 10
+      hostNetwork: true
+      # Allow scheduling only to turn pool nodes
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  # be sure to add this label to nodes within the node pool 'app.pixel/turn=true'
+                  - key: app.pixel/turn
+                    operator: In
+                    values: ["true"]
+      # keep pods once nodes are tainted
+      tolerations:
+        - key: "app.pixel/turn"
+          effect: "NoSchedule"
+          operator: "Exists"
+      # use init container to taint the worker node where coturn runs
+      initContainers:
+        - name: init
+          image: kubetools
+          imagePullPolicy: Always
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          command: ["/bin/sh"]
+          args:
+            - -exc
+            - |
+              # auto taint the node for the turn pool
+              kubectl taint node "${NODE_NAME}" \
+                --overwrite app.pixel/turn=true:NoSchedule || true
+      containers:
+        # STUN/TURN from coturn
+        - name: turn
+          image: turn
+          imagePullPolicy: Always
+          ports:
+            - name: turn-udp
+              containerPort: 3478
+              hostPort: 3478
+              protocol: UDP
+            - name: turn-tcp
+              containerPort: 3478
+              hostPort: 3478
+              protocol: TCP
+          env:
+            - name: INTERNAL_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            # Firewall rules on the node pool instances must be created for these port ranges
+            - name: TURN_PORT
+              value: "3478"
+            - name: TURN_MIN_PORT
+              value: "49152"
+            - name: TURN_MAX_PORT
+              value: "65535"
+            - name: TURN_REALM
+              value: app.pixel
+            - name: TURN_USER
+              valueFrom:
+                secretKeyRef:
+                  name: turn-secret
+                  key: username
+            - name: TURN_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: turn-secret
+                  key: password

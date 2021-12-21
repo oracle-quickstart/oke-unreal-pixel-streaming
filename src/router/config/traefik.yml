@@ -1,0 +1,44 @@
+# ----------------------------------------------------------------------
+# Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+# The Universal Permissive License (UPL), Version 1.0
+# ----------------------------------------------------------------------
+
+{{- $webPrefix := default "/" (env "WEB_PATH_PREFIX") }}
+{{- $socketPrefix := default "/ws" (env "SOCKET_PATH_PREFIX") }}
+
+# http entrypoint
+http:
+  # define middleware
+  middlewares:
+    strip-prefix:
+      stripPrefix:
+        prefixes:
+          - "{{ $webPrefix }}"
+          - "{{ $socketPrefix }}"
+          - "/matchmaker"
+
+  routers:
+    # player web router (GET only)
+    client:
+      rule: "Method(`GET`) && PathPrefix(`{{ $webPrefix }}`)"
+      service: client
+      middlewares:
+        - strip-prefix
+    #  matchmaker web sockets 
+    matchmaker:
+      rule: "PathPrefix(`{{ $socketPrefix }}`) || PathPrefix(`/matchmaker`)"
+      service: matchmaker
+      middlewares:
+        - strip-prefix
+
+  services:
+    # static web player content
+    client:
+      loadBalancer:
+        servers:
+          - url: http://{{ env "PLAYER_ADDRESS" }}
+    # matchmaker endpoint
+    matchmaker:
+      loadBalancer:
+        servers:
+          - url: http://{{ env "MATCHMAKER_ADDRESS" }}

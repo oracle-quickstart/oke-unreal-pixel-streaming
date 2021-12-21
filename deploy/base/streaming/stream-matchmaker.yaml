@@ -1,0 +1,114 @@
+# ----------------------------------------------------------------------
+# Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+# The Universal Permissive License (UPL), Version 1.0
+# ----------------------------------------------------------------------
+
+# matchmaker entrypoint
+apiVersion: v1
+kind: Service
+metadata:
+  name: matchmaker
+  labels:
+    app: matchmaker
+    app.kubernetes.io/name: matchmaker
+  annotations:
+    # scrape at the service level to leverage custom metrics in streamer hpa
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9000"
+spec:
+  type: ClusterIP
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10
+  ports:
+    # expose matchmaker websocket/http
+    - port: 3000
+      targetPort: 3000
+      name: http
+    # expose matchmaker net socket
+    - port: 9999
+      targetPort: 9999
+      name: socket
+    # expose metrics at the service level instead of pod
+    - port: 9000
+      targetPort: 9000
+      name: metrics
+  selector:
+    app: matchmaker
+    app.kubernetes.io/name: matchmaker
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: matchmaker
+  labels:
+    app.kubernetes.io/name: matchmaker
+spec:
+  # Important for now
+  replicas: 1
+  selector:
+    matchLabels:
+      app: matchmaker
+      app.kubernetes.io/name: matchmaker
+  template:
+    metadata:
+      labels:
+        app: matchmaker
+        app.kubernetes.io/name: matchmaker
+      annotations:
+        sidecar.istio.io/rewriteAppHTTPProbers: "true"
+    spec:
+      # config
+      volumes:
+        - name: config
+          configMap:
+            name: pixel-app-configs
+      # pod containers
+      containers:
+        - name: matchmaker
+          image: matchmaker
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 3000
+            - name: socket
+              containerPort: 9999
+            - name: metrics
+              containerPort: 9000
+              protocol: TCP
+          volumeMounts:
+            - name: config
+              mountPath: /config
+          # args on cirrus.js entrypoint
+          args:
+            - --configFile=/config/matchmaker.json
+            - --HttpPort=3000
+            - --httpPort=3000
+            - --MatchmakerPort=9999
+            - --matchmakerPort=9999
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+          resources:
+            limits:
+              cpu: 200m
+              memory: 200Mi
+            requests:
+              cpu: 100m
+              memory: 100Mi
+          securityContext:
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 10001
+            capabilities:
+              drop:
+                - all
+              add:
+                - NET_BIND_SERVICE

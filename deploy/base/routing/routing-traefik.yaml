@@ -1,0 +1,139 @@
+# ----------------------------------------------------------------------
+# Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+# The Universal Permissive License (UPL), Version 1.0
+# ----------------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: router
+  labels:
+    app.kubernetes.io/name: router
+spec:
+  type: ClusterIP
+  ports:
+    # traefik http
+    - port: 80
+      targetPort: 8888
+      name: http
+    # traefix api/dashboard/metrics
+    - port: 8080
+      targetPort: 8080
+      name: api
+  selector:
+    app: traefik
+    app.kubernetes.io/name: traefik
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: traefik
+  labels:
+    app.kubernetes.io/name: traefik
+spec:
+  selector:
+    matchLabels:
+      app: traefik
+      app.kubernetes.io/name: traefik
+  template:
+    metadata:
+      labels:
+        app: traefik
+        app.kubernetes.io/name: traefik
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      # config
+      volumes:
+        - name: config
+          configMap:
+            name: routing-traefik-config
+      # pod containers
+      containers:
+        # router UI
+        - name: router
+          image: traefik:v2.5
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: config
+              mountPath: /config
+          args:
+            - --ping
+            - --accesslog
+            # expose api/metrics (on traefik entrypoint)
+            - --api.insecure=true
+            - --metrics.prometheus.entrypoint=traefik
+            # pick up configurations from the configmap
+            - --providers.file.directory=/config
+            # expose the services on 8888
+            - --entrypoints.http.address=:8888
+          env:
+            # standard addresses
+            - name: WEB_PATH_PREFIX
+              value: /
+            - name: SOCKET_PATH_PREFIX
+              value: /ws
+            - name: PLAYER_ADDRESS
+              value: player:80
+            - name: MATCHMAKER_ADDRESS
+              value: matchmaker:3000
+            - name: PROXY_ADDRESS
+              value: podproxy:8080
+            # configure the remaining proxy settings from an optional configmap
+            - name: PROXY_ENABLE
+              valueFrom:
+                configMapKeyRef:
+                  optional: true
+                  name: routing-pod-proxy-config
+                  key: enable
+            - name: PROXY_HEADER_NAME
+              valueFrom:
+                configMapKeyRef:
+                  optional: true
+                  name: routing-pod-proxy-config
+                  key: header.name
+            - name: PROXY_PATH_PREFIX
+              valueFrom:
+                configMapKeyRef:
+                  optional: true
+                  name: routing-pod-proxy-config
+                  key: path.prefix
+            # map the proxy whitelist and trusted ips
+            - name: PROXY_AUTH_USERS
+              valueFrom:
+                configMapKeyRef:
+                  optional: true
+                  name: routing-pod-proxy-config
+                  key: auth.users
+          ports:
+            - name: http
+              containerPort: 8888
+            - name: api
+              containerPort: 8080
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: api
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: api
+          resources:
+            limits:
+              cpu: 200m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 64Mi
+          securityContext:
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 10001
+            capabilities:
+              drop:
+                - all
+              add:
+                - NET_BIND_SERVICE
+                - CHOWN
+                - SETGID
+                - SETUID

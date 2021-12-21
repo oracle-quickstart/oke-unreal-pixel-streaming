@@ -1,0 +1,17 @@
+# ----------------------------------------------------------------------
+# Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+# The Universal Permissive License (UPL), Version 1.0
+# ----------------------------------------------------------------------
+
+# patch to specify more/less restrictive proxy layer ingress
+# see `routing/routing-pod-configmap.yaml` for more information
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: routing-pod-proxy-config
+data:
+  # specify the proxy router prefix
+  path.prefix: "/proxy"
+  # specify a source ip whitelist as comma-separated IP/CIDR blocks
+  ip.whitelist: "0.0.0.0/0"

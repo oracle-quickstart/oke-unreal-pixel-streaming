@@ -1,0 +1,98 @@
+# ----------------------------------------------------------------------
+# Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+# The Universal Permissive License (UPL), Version 1.0
+# ----------------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: player
+  labels:
+    app.kubernetes.io/name: player
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 8080
+      name: http
+  selector:
+    app: player
+    app.kubernetes.io/name: player
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: player
+  labels:
+    app.kubernetes.io/name: player
+spec:
+  selector:
+    matchLabels:
+      app: player
+      app.kubernetes.io/name: player
+  template:
+    metadata:
+      labels:
+        app: player
+        app.kubernetes.io/name: player
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9113"
+        sidecar.istio.io/rewriteAppHTTPProbers: "true"
+    spec:
+      # pod containers
+      containers:
+        # prometheus exporter
+        - name: metrics
+          image: nginx/nginx-prometheus-exporter:0.9.0
+          imagePullPolicy: Always
+          ports:
+            - name: metrics
+              containerPort: 9113
+          args:
+            - -nginx.scrape-uri=http://localhost:8888
+          resources:
+            requests:
+              cpu: 5m
+        # player UI
+        - name: player
+          image: player
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: status
+              containerPort: 8888
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          resources:
+            limits:
+              cpu: 100m
+              memory: 100Mi
+            requests:
+              cpu: 50m
+              memory: 50Mi
+          securityContext:
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 10001
+            capabilities:
+              drop:
+                - all
+              add:
+                - NET_BIND_SERVICE
+                - CHOWN
+                - SETGID
+                - SETUID
+          volumeMounts:
+            - mountPath: /tmp
+              name: tmp-volume
+      volumes:
+        - name: tmp-volume
+          emptyDir:
+            medium: Memory

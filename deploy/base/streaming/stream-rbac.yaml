@@ -1,0 +1,37 @@
+# ----------------------------------------------------------------------
+# Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+# The Universal Permissive License (UPL), Version 1.0
+# ----------------------------------------------------------------------
+
+# Create a service account for in-cluster operations/automation
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: stream-svc-account
+  namespace: kube-system
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: stream-role
+  namespace: kube-system
+rules:
+  - apiGroups: [""]
+    resources: ["nodes", "pods"]
+    verbs: ["list", "get", "patch", "update"]
+  - apiGroups: ["apps"]
+    resources: ["statefulsets", "replicasets", "daemonsets", "deployments"]
+    verbs: ["list", "get", "patch", "update"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: stream-role-binding
+subjects:
+  - kind: ServiceAccount
+    name: stream-svc-account
+    namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: stream-role
+  apiGroup: rbac.authorization.k8s.io

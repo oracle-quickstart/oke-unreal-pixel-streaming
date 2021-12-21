@@ -1,0 +1,9 @@
+# ----------------------------------------------------------------------
+# Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+# The Universal Permissive License (UPL), Version 1.0
+# ----------------------------------------------------------------------
+node_modules
+logs
+certificates
+# tests too for now
+spec/**

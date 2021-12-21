@@ -1,0 +1,162 @@
+# 
+# kube-prometheus-stack helm chart values. These additions work in conjunction with
+# the dcgm-exporter helm chart & data set
+# see https://docs.nvidia.com/datacenter/cloud-native/gpu-telemetry/dcgm-exporter.html#gpu-telemetry
+prometheus:
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+    additionalScrapeConfigs:
+    # service endpoint scraping
+    - job_name: kubernetes-service-endpoints
+      scrape_interval: 10s
+      scrape_timeout: 10s
+      kubernetes_sd_configs:
+      - role: endpoints
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+        separator: ;
+        regex: "true"
+        replacement: $1
+        action: keep
+      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
+        separator: ;
+        regex: (https?)
+        target_label: __scheme__
+        replacement: $1
+        action: replace
+      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+        separator: ;
+        regex: (.+)
+        target_label: __metrics_path__
+        replacement: $1
+        action: replace
+      - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+        separator: ;
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        target_label: __address__
+        replacement: $1:$2
+        action: replace
+      - separator: ;
+        regex: __meta_kubernetes_service_annotation_prometheus_io_param_(.+)
+        replacement: __param_$1
+        action: labelmap
+      - separator: ;
+        regex: __meta_kubernetes_service_label_(.+)
+        replacement: $1
+        action: labelmap
+      - source_labels: [__meta_kubernetes_namespace]
+        separator: ;
+        regex: (.*)
+        target_label: namespace
+        replacement: $1
+        action: replace
+      - source_labels: [__meta_kubernetes_service_name]
+        separator: ;
+        regex: (.*)
+        target_label: service
+        replacement: $1
+        action: replace
+      - source_labels: [__meta_kubernetes_pod_node_name]
+        separator: ;
+        regex: (.*)
+        target_label: node
+        replacement: $1
+        action: replace
+
+    # general pod scraping
+    - job_name: kubernetes-pods
+      scrape_interval: 10s
+      kubernetes_sd_configs:
+      - role: pod
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        separator: ;
+        regex: "true"
+        replacement: $1
+        action: keep
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scheme]
+        separator: ;
+        regex: (https?)
+        target_label: __scheme__
+        replacement: $1
+        action: replace
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        separator: ;
+        regex: (.+)
+        target_label: __metrics_path__
+        replacement: $1
+        action: replace
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        separator: ;
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        target_label: __address__
+        replacement: $1:$2
+        action: replace
+      - separator: ;
+        regex: __meta_kubernetes_pod_annotation_prometheus_io_param_(.+)
+        replacement: __param_$1
+        action: labelmap
+      - separator: ;
+        regex: __meta_kubernetes_pod_label_(.+)
+        replacement: $1
+        action: labelmap
+      - source_labels: [__meta_kubernetes_namespace]
+        separator: ;
+        regex: (.*)
+        target_label: namespace
+        replacement: $1
+        action: replace
+      - source_labels: [__meta_kubernetes_pod_name]
+        separator: ;
+        regex: (.*)
+        target_label: pod
+        replacement: $1
+        action: replace
+      - source_labels: [__meta_kubernetes_pod_phase]
+        separator: ;
+        regex: Pending|Succeeded|Failed|Completed
+        replacement: $1
+        action: drop
+      - source_labels: [__meta_kubernetes_pod_container_name]
+        action: replace
+        target_label: container
+
+    # gpu metrics
+    - job_name: gpu-metrics
+      scrape_interval: 1s
+      metrics_path: /metrics
+      scheme: http
+      kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names:
+          - gpu-operator
+          - gpu-operator-resources
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_node_name]
+        action: replace
+        target_label: kubernetes_node
+
+# Configure grafana based on default values:
+# https://github.com/grafana/helm-charts/blob/main/charts/grafana/README.md
+# https://github.com/grafana/helm-charts/blob/main/charts/grafana/values.yaml
+#
+grafana:
+  enabled: true
+  persistence:
+    enabled: true
+  plugins:
+    - oci-logs-datasource
+    - oci-metrics-datasource
+    - grafana-kubernetes-app
+    - grafana-worldmap-panel
+    - grafana-piechart-panel
+  # disable ingress to handle separately
+  ingress:
+    enabled: false
+  grafana.ini:
+    # access grafana on the /grafana path prefix
+    server:
+      root_url: http://localhost:3000/grafana # this host can be localhost
+      # root_url: "%(protocol)s://%(domain)s:%(http_port)s/grafana"
+      serve_from_sub_path: true

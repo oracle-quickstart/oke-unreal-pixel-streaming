@@ -1,0 +1,38 @@
+# ----------------------------------------------------------------------
+# Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+# The Universal Permissive License (UPL), Version 1.0
+# ----------------------------------------------------------------------
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+commonLabels:
+  app.kubernetes.io/component: unreal
+
+resources:
+  - stream-rbac.yaml
+  - stream-runtime.yaml
+  - stream-matchmaker.yaml
+  - stream-player.yaml
+  - stream-hpa.yaml
+
+# keep secrets/configmaps plain
+generatorOptions:
+  disableNameSuffixHash: true
+
+# config maps
+configMapGenerator:
+  # config maps for signalling/matchmaker
+  - name: pixel-app-configs
+    files:
+      - config/cirrus.json
+      - config/matchmaker.json
+  # pixel streaming args
+  - name: pixel-stream-configs
+    envs:
+      - config/pixel.properties
+
+vars:
+  - name: MATCHMAKER_SVC
+    objref:
+      apiVersion: v1
+      kind: Service
+      name: matchmaker

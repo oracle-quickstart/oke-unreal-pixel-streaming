@@ -1,0 +1,497 @@
+﻿<!-- Copyright Epic Games, Inc. All Rights Reserved. -->
+<!DOCTYPE HTML>
+<html>
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/png" sizes="96x96" href="images/favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/css/bootstrap.min.css" integrity="sha384-Smlep5jCw/wG7hdkwQ/Z5nLIefveQRIY9nfy6xoR1uRYBtpZgI6339F5dgvm/e9B" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.1.0/css/all.css" integrity="sha384-lKuwvrZot6UHsBSfcMvOkWwlCMgc0TaWr+30HWe3a4ltaBwTZhyTEggF5tJv8tbt" crossorigin="anonymous">
+    <link type="text/css" rel="stylesheet" href="player.css">
+    <link type="text/css" rel="stylesheet" href="demo.css">
+    <script type="text/javascript" src="scripts/adapter.js"></script>
+    <script type="text/javascript" src="scripts/webRtcPlayer.js"></script>
+    <script type="text/javascript" src="scripts/app.js"></script>
+    <script type="text/javascript" src="custom.js"></script>
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <!-- For iPhone X the following makes it use the entire screen space for the webpage https://webkit.org/blog/7929/designing-websites-for-iphone-x/ -->
+    <meta name='viewport' content='initial-scale=1, viewport-fit=cover'>
+</head>
+
+<body onload="load(); CustomLoad()">
+    <div class="wrapper">
+        <nav id="sidebar">
+            <div id="sidebarContent">
+            <div class="sidebar-header">
+                <!--<h3>Configuration</h3>-->
+                <img src="images/UE4_Logo.png" width="200px" />
+                <hr>
+                <img alt="Oracle" src="images/oracle.svg" />
+            </div>
+
+             <ul id="sidebarlist" class="list-unstyled components">
+                <p>Pixel Streaming Demo</p>
+               <li>
+                    <a href="#charSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Characters</a>
+                    <ul class="collapse list-unstyled" id="charSubmenu">
+                        <li>
+                            <a href="#" onclick="onConfigButton(0,0)"><img src="images/Aurora.png" width="150px" />
+                            <h2><span>Aurora</span></h2></a>
+                        </li>
+                        <li>
+                            <a href="#" onclick="onConfigButton(0,1)"><img src="images/Crunch.png" width="150px" />
+                            <h2><span>Crunch</span></h2></a>
+                        </li>
+                        <li>
+                            <a href="#" onclick="onConfigButton(0,2)"><img src="images/Drongo.png" width="150px" />
+                            <h2><span>Drongo</span></h2></a>
+                        </li>
+                        <li>
+                            <a href="#" onclick="onConfigButton(0,3)"><img src="images/Greystone.png" width="150px" />
+                            <h2><span>Greystone</span></h2></a>
+                        </li>
+                        <li>
+                            <a href="#" onclick="onConfigButton(0,4)"><img src="images/Kallari.png" width="150px" />
+                            <h2><span>Kallari</span></h2></a>
+                        </li>
+                    </ul>
+                </li>
+                <li>
+                    <a href="#skinsSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Skins</a>
+                    <ul class="collapse list-unstyled" id="skinsSubmenu">
+                        <li>
+                            <a href="#" onclick="onConfigButton(1,0)">Skin 1</a>
+                        </li>
+                        <li>
+                            <a href="#" onclick="onConfigButton(1,1)">Skin 2</a>
+                        </li>
+                        <li>
+                            <a href="#" onclick="onConfigButton(1,2)">Skin 3</a>
+                        </li>
+                        <!--
+                        <li>
+                            <a href="#" onclick="onConfigButton(1,3)">Alternative 3</a>
+                        </li>
+                        -->
+                    </ul>
+                </li>
+                <li>
+                    <a href="#envSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Environments</a>
+                    <ul class="collapse list-unstyled" id="envSubmenu">
+                        <li>
+                            <a href="#" onclick="onConfigButton(2,0)">Ruins</a>
+                        </li>
+                        <li>
+                            <a href="#" onclick="onConfigButton(2,1)">Fortress</a>
+                        </li>
+                    </ul>
+                </li>
+                <li>
+                    <a href="#timeSubmenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">Time of Day</a>
+                    <ul class="collapse list-unstyled" id="timeSubmenu">
+                        <li>
+                            <a href="#" onclick="onConfigButton(3,0)">Day</a>
+                        </li>
+                        <li>
+                            <a href="#" onclick="onConfigButton(3,1)">Night</a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+</div>
+        </nav>
+
+        <div id="content" class="container p-2">
+            <nav>
+                <div class="btn-group btn-group-lg" role="group">
+                    <div class="btn-group mr-2 btn-group-lg" role="group" aria-label="Configuration group">
+                        <button type="button" id="sidebarCollapse" class="btn btn-secondary" onclick="toggleSidebar()">
+                            <span class="fas fa-bars"></span>
+                        </button>
+                    </div>
+
+                    <div class="btn-group mr-2 btn-group-lg" role="group" aria-label="Visualization group">
+<!--
+                        <button type="button" class="btn btn-secondary" onclick="setVisualization(2)">
+                            <span class="fas fa-play"></span>
+                        </button>
+-->
+                        <button type="button" class="btn btn-secondary" onclick="zoom()">
+                            <span class="fas fa-search-plus"></span>
+                        </button>
+<!--
+                        <button type="button" class="btn btn-secondary" onclick="setVisualization(0)">
+                            <span class="fas fa-chart-pie"></span>
+                        </button>
+
+                        <button type="button" class="btn btn-secondary" onclick="setVisualization(1)">
+                            <span class="fas fa-lightbulb"></span>
+                        </button>
+                    </div>
+-->
+                    <div class="btn-group mr-2 btn-group-lg" role="group" aria-label="Visualization group">
+                        <button id="720p" type="button" class="btn btn-secondary" onclick="setRes(1280,720)">
+                            <span>720p</span>
+                        </button>
+
+                        <button id="1080p" type="button" class="btn btn-secondary" onclick="setRes(1920, 1080)">
+                            <span>1080p</span>
+                        </button>
+
+                        <button id="4k" type="button" class="btn btn-secondary" onclick="setRes(3840, 2160)">
+                            <span>4k</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="btn-group btn-group-lg btn-group-toggle" data-toggle="buttons" role="group">
+                    <button type="button" class="btn btn-secondary" data-toggle="collapse" data-target="#settings">
+                        <span class="fas fa-sliders-h"></span>
+                    </button>
+                </div>
+                <div class="btn-group btn-group-lg btn-group-toggle" data-toggle="buttons" role="group">
+                    <div id="settings" class="btn-group mr-2 btn-group-lg collapse" role="group" aria-label="Configuration group">
+                        <div class="btn-group btn-group-lg dropdown show">
+                            <a class="btn btn-secondary dropdown-toggle" href="#" role="button" id="minQPDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                Min QP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                            </a>
+                            <div class="dropdown-menu" aria-labelledby="minQPDropdown">
+                                <a class="dropdown-item" href="#" onclick="setMinQP(0);">0</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(1);">1</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(2);">2</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(3);">3</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(4);">4</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(5);">5</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(6);">6</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(7);">7</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(8);">8</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(9);">9</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(10);">10</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(11);">11</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(12);">12</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(13);">13</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(14);">14</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(15);">15</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(16);">16</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(17);">17</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(18);">18</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(19);">19</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(20);">20</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(21);">21</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(22);">22</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(23);">23</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(24);">24</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(25);">25</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(26);">26</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(27);">27</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(28);">28</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(29);">29</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(30);">30</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(31);">31</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(32);">32</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(33);">33</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(34);">34</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(35);">35</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(36);">36</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(37);">37</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(38);">38</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(39);">39</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(40);">40</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(41);">41</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(42);">42</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(43);">43</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(44);">44</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(45);">45</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(46);">46</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(47);">47</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(48);">48</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(49);">49</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(50);">50</a>
+                                <a class="dropdown-item" href="#" onclick="setMinQP(51);">51</a>
+                            </div>
+                        </div>
+                        <div class="btn-group btn-group-lg dropdown show">
+                            <a class="btn btn-secondary dropdown-toggle" href="#" role="button" id="maxQPDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                Max QP&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                            </a>
+                            <div class="dropdown-menu" aria-labelledby="maxQPDropdown">
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(0);">0</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(1);">1</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(2);">2</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(3);">3</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(4);">4</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(5);">5</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(6);">6</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(7);">7</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(8);">8</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(9);">9</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(10);">10</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(11);">11</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(12);">12</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(13);">13</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(14);">14</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(15);">15</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(16);">16</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(17);">17</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(18);">18</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(19);">19</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(20);">20</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(21);">21</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(22);">22</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(23);">23</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(24);">24</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(25);">25</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(26);">26</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(27);">27</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(28);">28</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(29);">29</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(30);">30</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(31);">31</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(32);">32</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(33);">33</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(34);">34</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(35);">35</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(36);">36</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(37);">37</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(38);">38</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(39);">39</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(40);">40</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(41);">41</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(42);">42</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(43);">43</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(44);">44</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(45);">45</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(46);">46</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(47);">47</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(48);">48</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(49);">49</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(50);">50</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxQP(51);">51</a>
+                            </div>
+                        </div>
+                        <div class="btn-group btn-group-lg dropdown show">
+                            <a class="btn btn-secondary dropdown-toggle" href="#" role="button" id="rateControlDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                Rate Control&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                            </a>
+
+                            <div class="dropdown-menu" aria-labelledby="rateControlDropdown">
+                                <a class="dropdown-item" href="#" onclick="setRateControl('ConstQP');">ConstQP</a>
+                                <a class="dropdown-item" href="#" onclick="setRateControl('VBR');">VBR</a>
+                                <a class="dropdown-item" href="#" onclick="setRateControl('CBR');">CBR</a>
+                            </div>
+                        </div>
+                        <div class="btn-group btn-group-lg dropdown show">
+                            <a class="btn btn-secondary dropdown-toggle" href="#" role="button" id="maxBitrateDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                VBR Max Bitrate&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                            </a>
+                            <div class="dropdown-menu" aria-labelledby="maxBitrateDropdown">
+                                <a class="dropdown-item" href="#" onclick="setMaxBitrate(0.5);">0.5 Mbps</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxBitrate(1);">1 Mbps</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxBitrate(2);">2 Mbps</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxBitrate(3);">3 Mbps</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxBitrate(4);">4 Mbps</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxBitrate(5);">5 Mbps</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxBitrate(8);">8 Mbps</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxBitrate(10);">10 Mbps</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxBitrate(15);">15 Mbps</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxBitrate(20);">20 Mbps</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxBitrate(30);">30 Mbps</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxBitrate(50);">50 Mbps</a>
+                                <a class="dropdown-item" href="#" onclick="setMaxBitrate(60);">60 Mbps</a>
+                            </div>
+                        </div>
+                        <div class="btn-group btn-group-lg dropdown show">
+                            <a class="btn btn-secondary dropdown-toggle" href="#" role="button" id="multipassDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                Multipass&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                            </a>
+
+                            <div class="dropdown-menu" aria-labelledby="multipassDropdown">
+                                <a class="dropdown-item" href="#" onclick="setMultipass('DISABLED');">DISABLED</a>
+                                <a class="dropdown-item" href="#" onclick="setMultipass('QUARTER');">QUARTER</a>
+                                <a class="dropdown-item" href="#" onclick="setMultipass('FULL');">FULL</a>
+                            </div>
+                        </div>
+
+                        <div class="btn-group btn-group-lg dropdown show">
+                            <a class="btn btn-secondary dropdown-toggle" href="#" role="button" id="framerateCapDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                Framerate Cap&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                            </a>
+
+                            <div class="dropdown-menu" aria-labelledby="framerateCapDropdown">
+                                <a class="dropdown-item" href="#" onclick="setFramerateCap(5);">5 fps</a>
+                                <a class="dropdown-item" href="#" onclick="setFramerateCap(10);">10 fps</a>
+                                <a class="dropdown-item" href="#" onclick="setFramerateCap(15);">15 fps</a>
+                                <a class="dropdown-item" href="#" onclick="setFramerateCap(20);">20 fps</a>
+                                <a class="dropdown-item" href="#" onclick="setFramerateCap(25);">25 fps</a>
+                                <a class="dropdown-item" href="#" onclick="setFramerateCap(30);">30 fps</a>
+                                <a class="dropdown-item" href="#" onclick="setFramerateCap(40);">40 fps</a>
+                                <a class="dropdown-item" href="#" onclick="setFramerateCap(50);">50 fps</a>
+                                <a class="dropdown-item" href="#" onclick="setFramerateCap(60);">60 fps</a>
+                                <a class="dropdown-item" href="#" onclick="setFramerateCap(0);">Unlimited</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="row">
+                <div class="col">
+                    <div id="player" class="fixed-size">
+                        <div id="configuration">
+                            <!--<div id="button" type="button" onclick="onConfigurationOne()">Option One</div>
+                            <div id="button" type="button" onclick="onConfigurationTwo()">Option Two</div>-->
+                            <div id="ck-fullscreen">
+                              <i id="fullscreen-img" class="fa fa-expand"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="text"></div>
+
+            <div id="overlay" class="text-light bg-dark">
+              <div class="clearfix">
+                <div id="qualityStatus" class="greyStatus">&#9679</div>
+                <div id="overlayButton">+</div>
+              </div>
+                
+              <div id="overlaySettings">
+
+                <div id="kickOthers">
+                  <div class="settings-text">Kick all other players</div>
+                  <label class="btn-overlay">
+                    <input type="button" id="kick-other-players-button" class="overlay-button btn-flat" value="Kick">
+                  </label>
+                </div>
+                <div id="fillWindow" hidden>
+                  <div class="settings-text">Enlarge Display to Fill Window</div>
+                  <label class="tgl-switch">
+                    <input type="checkbox" id="enlarge-display-to-fill-window-tgl" class="tgl tgl-flat" checked>
+                    <div class="tgl-slider"></div>
+                  </label>
+                </div>
+                <div id="qualityControlOwnership">
+                  <div class="settings-text">Quality control ownership</div>
+                  <label class="tgl-switch">
+                    <input type="checkbox" id="quality-control-ownership-tgl" class="tgl tgl-flat">
+                    <div class="tgl-slider"></div>
+                  </label>
+                </div>
+                <!-- hide these because they seem to break the streamer -->
+                <section id="encoderSettings" hidden>
+                  <div class="settings-text">Encoder Settings</div>
+                  <div id="encoderParamsContainer">
+                    <div class="form-group">
+                      <label for="encoder-rate-control" class="settings-text">Rate Control</label>
+                      <select class="form-control" id="encoder-rate-control">
+                        <option value="CBR" selected>CBR</option>
+                        <option value="VBR">VBR</option>
+                        <option value="ConstQP">ConstQP</option>
+                      </select>
+                      <br>
+                      <label for="encoder-target-bitrate-text">Target Bitrate (kbps)</label>
+                      <input type="number" class="form-control" id="encoder-target-bitrate-text" value="0" min="0" max="100000" /><br>
+                      <label for="encoder-max-bitrate-text">Max Bitrate (kbps)</label>
+                      <input type="number" class="form-control" id="encoder-max-bitrate-text" value="0" min="0" max="100000" /><br>
+                      <label for="encoder-min-qp-text">Min QP</label>
+                      <input type="number" class="form-control" id="encoder-min-qp-text" value="0" min="0" max="999" /><br>
+                      <label for="encoder-max-qp-text">Max QP</label>
+                      <input type="number" class="form-control" id="encoder-max-qp-text" value="0" min="0" max="999" /><br>
+                      <div class="settings-text">Filler Data</div>
+                      <label class="tgl-switch">
+                        <input type="checkbox" id="encoder-filler-data-tgl" class="tgl tgl-flat">
+                        <div class="tgl-slider"></div>
+                      </label>
+                      <br>
+                      <label for="encoder-multipass" class="settings-text">Multipass</label>
+                      <select class="form-control" id="encoder-multipass">
+                        <option value="DISABLED" selected>DISABLED</option>
+                        <option value="QUARTER">QUARTER</option>
+                        <option value="FULL">FULL</option>
+                      </select><br>
+                      <input id="encoder-params-submit" class="btn btn-primary btn-lg mt-3" type="button" value="Apply">
+                    </div>
+                  </div>
+                  <br>
+                </section>
+                
+                <!-- hide these because they seem to break the streamer -->
+                <section id="webRTCSettings" hidden>
+                  <div class="settings-text">WebRTC Settings</div>
+                  <div id="webrtcParamsContainer">
+                    <div class="form-group">
+                      <label for="webrtc-degradation-pref">Degradation Pref</label>
+                      <select class="form-control" id="webrtc-degradation-pref">
+                        <option value="BALANCED">BALANCED</option>
+                        <option value="MAINTAIN_FRAMERATE">MAINTAIN_FRAMERATE</option>
+                        <option value="MAINTAIN_RESOLUTION">MAINTAIN_RESOLUTION</option>
+                      </select><br>
+                      <label for="webrtc-max-fps-text">Max FPS</label>
+                      <input type="number" class="form-control" id="webrtc-max-fps-text" value="1" min="1" max="999" /><br>
+                      <label for="webrtc-min-bitrate-text">Min Bitrate (kbps)</label>
+                      <input type="number" class="form-control" id="webrtc-min-bitrate-text" value="0" min="0" max="100000" /><br>
+                      <label for="webrtc-max-bitrate-text">Max Bitrate (kbps)</label>
+                      <input type="number" class="form-control" id="webrtc-max-bitrate-text" value="0" min="0" max="100000" /><br>
+                      <label for="webrtc-low-qp-text">Low QP Threshold</label>
+                      <input type="number" class="form-control" id="webrtc-low-qp-text" value="0" min="0" max="999" /><br>
+                      <label for="webrtc-high-qp-text">High QP Threshold</label>
+                      <input type="number" class="form-control" id="webrtc-high-qp-text" value="0" min="0" max="999" /><br>
+                      <input id="webrtc-params-submit" class="btn btn-primary btn-lg mt-3" type="button" value="Apply">
+                    </div>
+                  </div>
+                </section>
+        
+                <div id="showFPS" hidden>
+                  <div class="settings-text">Show FPS</div>
+                  <label class="btn-overlay">
+                    <input type="button" id="show-fps-button" class="overlay-button btn-flat" value="Toggle">
+                  </label>
+                </div>
+                <div id="matchViewportResolution">
+                  <div class="settings-text">Match Viewport Resolution</div>
+                  <label class="tgl-switch">
+                    <input type="checkbox" id="match-viewport-res-tgl" class="tgl tgl-flat">
+                    <div class="tgl-slider"></div>
+                  </label>
+                </div>
+        
+                <div id="statsPanel">
+                  <div class="settings-text">Show Stats</div>
+                  <label class="tgl-switch">
+                    <input type="checkbox" id="show-stats-tgl" class="tgl tgl-flat" checked>
+                    <div class="tgl-slider"></div>
+                  </label>
+                  <div id="statsContainer" class="statsContainer">
+                    <div id="stats" class="stats"></div>
+                  </div>
+                  <br>
+                </div>
+                
+                <div id="latencyTest">
+                  <div class="settings-text">Latency Stats</div>
+                  <label class="btn-overlay">
+                    <input type="button" id="test-latency-button" class="overlay-button btn-flat" value="Test Latency">
+                  </label>
+                  <div id="latencyStatsContainer" class="statsContainer">
+                    <div id=LatencyStats class="stats">No stats yet...</div>
+                  </div>
+                </div>
+
+                <div class="pt-3 pb-3">
+                  <img alt="Oracle" src="images/oracle.svg" />
+                </div>
+              </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/js/bootstrap.min.js" integrity="sha384-o+RDsa0aLu++PJvFqy8fFScvbHFLtbvScb8AjopnFD+iEQ7wo/CG0xlczd+2O/em" crossorigin="anonymous"></script>
+</body>
+</html>

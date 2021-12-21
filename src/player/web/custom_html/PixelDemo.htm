@@ -1,0 +1,203 @@
+﻿<!-- Copyright Epic Games, Inc. All Rights Reserved. -->
+<!DOCTYPE HTML>
+<html>
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon">
+    <link rel="icon" type="image/png" sizes="96x96" href="images/favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/css/bootstrap.min.css" integrity="sha384-Smlep5jCw/wG7hdkwQ/Z5nLIefveQRIY9nfy6xoR1uRYBtpZgI6339F5dgvm/e9B" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.1.0/css/all.css" integrity="sha384-lKuwvrZot6UHsBSfcMvOkWwlCMgc0TaWr+30HWe3a4ltaBwTZhyTEggF5tJv8tbt" crossorigin="anonymous">
+    <link type="text/css" rel="stylesheet" href="player.css">
+    <link type="text/css" rel="stylesheet" href="custom.css">
+    <script type="text/javascript" src="scripts/adapter.js"></script>
+    <script type="text/javascript" src="scripts/webRtcPlayer.js"></script>
+    <script type="text/javascript" src="scripts/app.js"></script>
+    <script type="text/javascript" src="custom.js"></script>
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <!-- For iPhone X the following makes it use the entire screen space for the webpage https://webkit.org/blog/7929/designing-websites-for-iphone-x/ -->
+    <meta name='viewport' content='initial-scale=1, viewport-fit=cover'>
+</head>
+
+<body onload="load(); CustomLoad()">
+    <!-- <div class="wrapper"> -->
+
+        <div id="playerUI">
+
+            <!-- <div class="row">
+                <div class="col"> -->
+                    <div id="player">
+                    </div>
+                    <div id="configuration">
+                        <div id="ck-fullscreen">
+                          <i id="fullscreen-img" class="fa fa-expand"></i>
+                        </div>
+                    </div>
+                <!-- </div>
+            </div> -->
+            <!-- <div class="text"></div> -->
+
+            <div id="overlay" class="overlay">
+              <div class="clearfix">
+                  <div id="qualityStatus" class="greyStatus">&#9679</div>
+                  <div id="overlayButton">+</div>
+              </div>
+              <div id="overlaySettings">
+
+                <div id="kickOthers">
+                  <div class="settings-text">Kick all other players</div>
+                  <label class="btn-overlay">
+                    <input type="button" id="kick-other-players-button" class="overlay-button btn-flat" value="Kick">
+                  </label>
+                </div>
+                <div id="fillWindow" hidden>
+                  <div class="settings-text">Enlarge Display to Fill Window</div>
+                  <label class="tgl-switch">
+                    <input type="checkbox" id="enlarge-display-to-fill-window-tgl" class="tgl tgl-flat" checked>
+                    <div class="tgl-slider"></div>
+                  </label>
+                </div>
+                <div id="qualityControlOwnership">
+                  <div class="settings-text">Quality control ownership</div>
+                  <label class="tgl-switch">
+                    <input type="checkbox" id="quality-control-ownership-tgl" class="tgl tgl-flat">
+                    <div class="tgl-slider"></div>
+                  </label>
+                </div>
+                <!-- hide these because they seem to break the streamer -->
+                <section id="encoderSettings" hidden>
+                  <div class="settings-text">Encoder Settings</div>
+                  <div id="encoderParamsContainer">
+                    <div class="form-group">
+                      <label for="encoder-rate-control" class="settings-text">Rate Control</label>
+                      <select class="form-control" id="encoder-rate-control">
+                        <option value="CBR" selected>CBR</option>
+                        <option value="VBR">VBR</option>
+                        <option value="ConstQP">ConstQP</option>
+                      </select>
+                      <br>
+                      <label for="encoder-target-bitrate-text">Target Bitrate (kbps)</label>
+                      <input type="number" class="form-control" id="encoder-target-bitrate-text" value="0" min="0" max="100000" /><br>
+                      <label for="encoder-max-bitrate-text">Max Bitrate (kbps)</label>
+                      <input type="number" class="form-control" id="encoder-max-bitrate-text" value="0" min="0" max="100000" /><br>
+                      <label for="encoder-min-qp-text">Min QP</label>
+                      <input type="number" class="form-control" id="encoder-min-qp-text" value="0" min="0" max="999" /><br>
+                      <label for="encoder-max-qp-text">Max QP</label>
+                      <input type="number" class="form-control" id="encoder-max-qp-text" value="0" min="0" max="999" /><br>
+                      <div class="settings-text">Filler Data</div>
+                      <label class="tgl-switch">
+                        <input type="checkbox" id="encoder-filler-data-tgl" class="tgl tgl-flat">
+                        <div class="tgl-slider"></div>
+                      </label>
+                      <br>
+                      <label for="encoder-multipass" class="settings-text">Multipass</label>
+                      <select class="form-control" id="encoder-multipass">
+                        <option value="DISABLED" selected>DISABLED</option>
+                        <option value="QUARTER">QUARTER</option>
+                        <option value="FULL">FULL</option>
+                      </select><br>
+                      <input id="encoder-params-submit" class="btn btn-primary btn-lg mt-3" type="button" value="Apply">
+                    </div>
+                  </div>
+                  <br>
+                </section>
+                
+                <!-- hide these because they seem to break the streamer -->
+                <section id="webRTCSettings" hidden>
+                  <div class="settings-text">WebRTC Settings</div>
+                  <div id="webrtcParamsContainer">
+                    <div class="form-group">
+                      <label for="webrtc-degradation-pref">Degradation Pref</label>
+                      <select class="form-control" id="webrtc-degradation-pref">
+                        <option value="BALANCED">BALANCED</option>
+                        <option value="MAINTAIN_FRAMERATE">MAINTAIN_FRAMERATE</option>
+                        <option value="MAINTAIN_RESOLUTION">MAINTAIN_RESOLUTION</option>
+                      </select><br>
+                      <label for="webrtc-max-fps-text">Max FPS</label>
+                      <input type="number" class="form-control" id="webrtc-max-fps-text" value="1" min="1" max="999" /><br>
+                      <label for="webrtc-min-bitrate-text">Min Bitrate (kbps)</label>
+                      <input type="number" class="form-control" id="webrtc-min-bitrate-text" value="0" min="0" max="100000" /><br>
+                      <label for="webrtc-max-bitrate-text">Max Bitrate (kbps)</label>
+                      <input type="number" class="form-control" id="webrtc-max-bitrate-text" value="0" min="0" max="100000" /><br>
+                      <label for="webrtc-low-qp-text">Low QP Threshold</label>
+                      <input type="number" class="form-control" id="webrtc-low-qp-text" value="0" min="0" max="999" /><br>
+                      <label for="webrtc-high-qp-text">High QP Threshold</label>
+                      <input type="number" class="form-control" id="webrtc-high-qp-text" value="0" min="0" max="999" /><br>
+                      <input id="webrtc-params-submit" class="btn btn-primary btn-lg mt-3" type="button" value="Apply">
+                    </div>
+                  </div>
+                </section>
+        
+                <div id="showFPS" hidden>
+                  <div class="settings-text">Show FPS</div>
+                  <label class="btn-overlay">
+                    <input type="button" id="show-fps-button" class="overlay-button btn-flat" value="Toggle">
+                  </label>
+                </div>
+                <div id="matchViewportResolution">
+                  <div class="settings-text">Match Viewport Resolution</div>
+                  <label class="tgl-switch">
+                    <input type="checkbox" id="match-viewport-res-tgl" class="tgl tgl-flat">
+                    <div class="tgl-slider"></div>
+                  </label>
+                </div>
+        
+                <div id="statsPanel">
+                  <div class="settings-text">Show Stats</div>
+                  <label class="tgl-switch">
+                    <input type="checkbox" id="show-stats-tgl" class="tgl tgl-flat" checked>
+                    <div class="tgl-slider"></div>
+                  </label>
+                  <div id="statsContainer" class="statsContainer">
+                    <div id="stats" class="stats"></div>
+                  </div>
+                  <br>
+                </div>
+                
+                <div id="latencyTest">
+                  <div class="settings-text">Latency Stats</div>
+                  <label class="btn-overlay">
+                    <input type="button" id="test-latency-button" class="overlay-button btn-flat" value="Test Latency">
+                  </label>
+                  <div id="latencyStatsContainer" class="statsContainer">
+                    <div id=LatencyStats class="stats">No stats yet...</div>
+                  </div>
+                </div>
+
+                
+                <div class="pt-3 pb-3">
+                  <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+                    viewBox="0 0 274 34" enable-background="new 0 0 274 34" xml:space="preserve" style="fill:#fff">
+                    <path d="M122.05,0c-1.63,0-3.12,0.78-3.98,2.08l-20.4,31.94l7.64-0.01l16.76-26.6l9.13,14.71h-17.28l3.82,5.94h17.51l3.59,5.95
+                      l7.64,0.01l-20.47-32C125.12,0.76,123.65,0,122.05,0z M37.42,0.33H17.84C8.54,0.33,1,7.87,1,17.17c0,9.3,7.54,16.84,16.84,16.84
+                      l19.58,0.01c9.3,0,16.84-7.54,16.84-16.84C54.26,7.87,46.72,0.33,37.42,0.33z M36.98,28.08H18.28c-6.02,0-10.9-4.88-10.9-10.9
+                      c0-6.02,4.88-10.91,10.9-10.91l18.71,0c6.02,0,10.9,4.88,10.9,10.9C47.88,23.2,43.01,28.08,36.98,28.08z M149.51,17.17
+                      c0-6.02,4.88-10.91,10.91-10.91l19.01,0l3.81-5.94h-23.26c-9.3,0-16.84,7.54-16.84,16.84c0,9.3,7.55,16.84,16.84,16.84h19.99
+                      l3.8-5.93h-23.35C154.39,28.08,149.51,23.2,149.51,17.17z M97.43,11.72c0-6.29-5.1-11.39-11.39-11.39H57.7v33.68h6.47V6.27H85.6
+                      c3.02,0,5.45,2.44,5.45,5.45c0,3.01-2.43,5.45-5.45,5.45l-18.25-0.01l19.33,16.84h9.41l-13-10.91l2.96,0.01
+                      C92.33,23.11,97.43,18.01,97.43,11.72z M193.2,0.33h-6.48v30.45c0,0.84,0.34,1.65,0.94,2.25c0.63,0.63,1.47,0.98,2.37,0.98h29.54
+                      l3.81-5.94H193.2V0.33z M228.72,20.15h27.68l3.81-5.94l-31.51,0c1.29-4.58,5.5-7.94,10.5-7.94l19,0l3.82-5.94h-23.26
+                      c-9.3,0-16.84,7.54-16.84,16.84c0,9.3,7.54,16.84,16.84,16.84h19.98l3.81-5.93H239.2C234.22,28.08,230,24.73,228.72,20.15z
+                      M268.47,0.15c-2.09,0-3.78,1.69-3.78,3.79c0,2.09,1.69,3.79,3.78,3.79c2.09,0,3.79-1.7,3.79-3.79
+                      C272.26,1.84,270.56,0.15,268.47,0.15z M268.47,6.9c-1.64,0-2.97-1.33-2.97-2.98c0-1.64,1.33-2.97,2.97-2.97
+                      c1.65,0,2.97,1.33,2.97,2.97C271.44,5.57,270.12,6.9,268.47,6.9z M269.48,4.06c0.39-0.24,0.48-0.57,0.53-0.73
+                      c0.04-0.15,0.04-0.3,0.04-0.35c0-0.25-0.08-0.94-0.82-1.19c-0.29-0.11-0.53-0.11-1.11-0.11h-1.07v4.24h0.83V4.3h0.58l0.86,1.62
+                      h0.95l-0.99-1.76C269.41,4.12,269.43,4.1,269.48,4.06z M269.12,3.34c-0.17,0.24-0.45,0.26-0.71,0.26h-0.53V2.38h0.24
+                      c0.39,0,0.59,0,0.78,0.07c0.2,0.1,0.32,0.29,0.32,0.52C269.21,3.12,269.18,3.23,269.12,3.34z"/>
+                  </svg>
+                </div>
+              </div>
+        </div>
+    <!-- </div> -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script> -->
+    <!-- <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/js/bootstrap.min.js" integrity="sha384-o+RDsa0aLu++PJvFqy8fFScvbHFLtbvScb8AjopnFD+iEQ7wo/CG0xlczd+2O/em" crossorigin="anonymous"></script> -->
+</body>
+</html>

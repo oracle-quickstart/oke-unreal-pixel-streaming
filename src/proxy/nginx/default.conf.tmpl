@@ -1,0 +1,76 @@
+# ----------------------------------------------------------------------
+# Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+# The Universal Permissive License (UPL), Version 1.0
+# ----------------------------------------------------------------------
+
+# supports non standard headers, so turn off warning
+ignore_invalid_headers off;
+
+# assign custom (internal) resolver
+resolver  ${NS_RESOLVER} ipv6=off valid=5s;
+
+# proxy defaults
+proxy_buffers                 4 256k;
+proxy_buffer_size             128k;
+proxy_busy_buffers_size       256k;
+proxy_connect_timeout         1000ms;
+proxy_send_timeout            1000ms;
+proxy_read_timeout            10s;
+
+map $args $proxy_args {
+  default     ?$args;
+  ''          '';
+}
+
+# map the request uri (escaped/encoded) to the proxy target
+map $uri $proxy_endpoint {
+  # use a single forward slash on protocol concatenated with the /uri
+  default   http:/$uri$proxy_args;
+}
+
+# map http upgrade header to connection header
+map $http_upgrade $connection_upgrade {
+  default   upgrade;
+  ''        close;
+}
+
+# expose metrics
+server {
+  listen       8888;
+  access_log   off;
+  server_name  localhost;
+  stub_status;
+}
+
+# expose proxy server
+server {
+    listen       8080;
+    server_name  localhost;
+
+    location /healthz {
+      access_log    off;
+      return 200;
+    }
+
+
+    location / {
+      proxy_pass              $proxy_endpoint;
+      proxy_http_version      1.1;
+      proxy_set_header        Host                $host;
+      proxy_set_header        X-Real-Ip           $remote_addr;
+      proxy_set_header        X-Forwarded-For     $proxy_add_x_forwarded_for;
+      proxy_set_header        X-Forwarded-Proto   $scheme;
+      proxy_set_header        Upgrade             $http_upgrade;
+      proxy_set_header        Connection          $connection_upgrade;
+      proxy_set_header        X-Pod-Proxy         true;
+      add_header              X-Proxy-Reflect     $proxy_endpoint;
+    }
+
+    error_page  404              /404.html;
+
+    # redirect server error pages to the static page /50x.html
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+      root   /usr/share/nginx/html;
+    }
+}

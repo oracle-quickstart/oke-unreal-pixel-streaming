@@ -1,0 +1,146 @@
+# ----------------------------------------------------------------------
+# Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+# The Universal Permissive License (UPL), Version 1.0
+# ----------------------------------------------------------------------
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stream
+  labels:
+    app.kubernetes.io/name: stream
+spec:
+  selector:
+    matchLabels:
+      app: stream
+      app.kubernetes.io/name: stream
+  template:
+    metadata:
+      labels:
+        app: stream
+        app.kubernetes.io/name: stream
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9000"
+        sidecar.istio.io/rewriteAppHTTPProbers: "true"
+    spec:
+      serviceAccountName: stream-svc-account
+      terminationGracePeriodSeconds: 10
+      # Require scheduling only to gpu pool nodes by label
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  # be sure to add this label to nodes within the node pool 'app.pixel/gpu=true'
+                  - key: app.pixel/gpu
+                    operator: Exists
+      # Tolerate automatic gpu taint on the gpu pool rather than request specific
+      # GPU resource limit
+      tolerations:
+        - key: "nvidia.com/gpu"
+          effect: "NoSchedule"
+          operator: "Exists"
+      # app config
+      volumes:
+        - name: config
+          configMap:
+            name: pixel-app-configs
+      # pod containers
+      containers:
+        # cirrus signal server sidecar
+        - name: signaler
+          image: signalserver
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 3000
+            - name: stream
+              containerPort: 8888
+            - name: metrics
+              containerPort: 9000
+          volumeMounts:
+            - name: config
+              mountPath: /config
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          # args on cirrus.js entrypoint
+          args:
+            - --configFile=/config/cirrus.json
+            - --httpPort=3000
+            - --streamerPort=8888
+            - --UseMatchmaker=true
+            - --MatchmakerAddress=$(MATCHMAKER_SVC)
+            - --MatchmakerPort=9999
+            # future proofing camel casing
+            - --useMatchmaker=true
+            - --matchmakerAddress=$(MATCHMAKER_SVC)
+            - --matchmakerPort=9999
+            # extensions
+            - --ueRestEndpoint=http://localhost:8111
+            - --rtcConfigSvc=http://$(TURN_API_SVC):3000
+            - --metricsPort=9000
+
+        # unreal engine pixel streaming runtime with VaRest support
+        - name: streamer
+          image: pixelstreaming
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: rest
+              containerPort: 8111
+          resources:
+            requests:
+              cpu: 2
+            # limits:
+            #   nvidia.com/gpu: 1
+
+          # apply env configurations from configmap
+          envFrom:
+            - configMapRef:
+                name: pixel-stream-configs
+          env:
+            # configure ws connection to the streamer (cirrus in sidecar)
+            - name: SIGNAL_URL
+              value: ws://localhost:8888
+            # configure any extra args
+            # - name: EXTRA_ARGS
+            #   value: "-RestApiPort=8111"
+        
+        # annotation agent to apply pod-deletion-cost such that pod autoscaling
+        # scale down prioritizes idle streamers. This approach, however, is not
+        # ideal because it will generate a heap of pod updates on the apiserver
+        # @see https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/#pod-deletion-cost
+        - name: annotation-agent
+          image: kubetools
+          imagePullPolicy: Always
+          command: ["/bin/sh"]
+          resources:
+            requests:
+              cpu: 5m
+          args:
+            - -ec
+            - |
+              while true; do
+                # obtain player connections from metrics
+                export PLAYERS=$(curl -s "${SELF_METRICS}" | grep ^signalserver_player_socket_connections | awk '{print $2}')
+
+                # apply player connections as the pod deletion cost
+                kubectl annotate pod "${POD_NAME}" \
+                  --namespace "${NAMESPACE}" \
+                  --overwrite controller.kubernetes.io/pod-deletion-cost="${PLAYERS}" || true
+                sleep 10
+              done
+          env:
+            - name: SELF_METRICS
+              value: http://localhost:9000/custom
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace

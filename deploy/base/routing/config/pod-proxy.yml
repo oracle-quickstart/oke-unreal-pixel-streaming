@@ -1,0 +1,51 @@
+# ----------------------------------------------------------------------
+# Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+# The Universal Permissive License (UPL), Version 1.0
+# ----------------------------------------------------------------------
+
+# process variables
+{{- $includeProxy := and (eq "true" (env "PROXY_ENABLE")) (not (empty (env "PROXY_ADDRESS"))) }}
+{{- $proxyPrefix := default "/" (env "PROXY_PATH_PREFIX") }}
+{{- $proxyUserList := compact (splitList "," (default "" (env "PROXY_AUTH_USERS"))) }}
+{{- $proxyHeaderName := default "X-Proxy" (env "PROXY_HEADER_NAME") }}
+
+# optionally define necessary routing if the dynamic proxy is specified
+{{- if $includeProxy }}
+http:
+  middlewares:
+    # prefix removal
+    proxy-strip-prefix:
+      stripPrefix:
+        prefixes:
+          - "{{ $proxyPrefix }}"
+    # define auth middleware for proxy
+    {{- if not (empty $proxyUserList) }}
+    proxy-auth:
+      basicAuth:
+        users:
+          {{- range $cred := $proxyUserList }}
+          - "{{ $cred }}"
+          {{- end }}
+    {{- end }}
+
+  routers:
+    # specify the dynamic proxy route
+    pod-proxy:
+      rule: |
+        Headers(`{{ $proxyHeaderName }}`, `true`) &&
+        PathPrefix(`{{ $proxyPrefix }}{addr:[a-z0-9/.]+}`)
+      service: pod-proxy
+      middlewares:
+        - proxy-strip-prefix
+        {{- if not (empty $proxyUserList) }}
+        - proxy-auth
+        {{- end }}
+
+  services:
+    # wire the proxy service
+    pod-proxy:
+      loadBalancer:
+        servers:
+          - url: http://{{ env "PROXY_ADDRESS" }}
+
+{{- end }}

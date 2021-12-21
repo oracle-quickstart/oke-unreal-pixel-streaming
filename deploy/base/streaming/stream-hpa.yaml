@@ -1,0 +1,56 @@
+# ----------------------------------------------------------------------
+# Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+# The Universal Permissive License (UPL), Version 1.0
+# ----------------------------------------------------------------------
+
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: stream-autoscaler
+  labels:
+    app.kubernetes.io/name: stream-autoscaler
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: stream
+  minReplicas: 1
+  maxReplicas: 10
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 30
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 15
+        - type: Percent
+          value: 10
+          periodSeconds: 15
+  # scaling metrics
+  metrics:
+    # Using the stream_player_connections is error prone as the target
+    # value does not accurately reflect a specific number of clients
+    # - type: Pods
+    #   pods:
+    #     metric:
+    #       name: stream_player_connections
+    #     target:
+    #       type: AverageValue
+    #       averageValue: 0
+
+    # Use custom metric from the matchmaker player to available pool ratio
+    # - a value of '1' adjusts so that the number of players should equal the number of streams.
+    # - a value < '1' (such as 900m) means that streams increase proactively to accommodate future player sessions
+    - type: Object
+      object:
+        metric:
+          name: player_stream_pool_ratio
+        describedObject:
+          apiVersion: v1
+          kind: Service
+          name: matchmaker
+        target:
+          type: Value
+          value: 0.90

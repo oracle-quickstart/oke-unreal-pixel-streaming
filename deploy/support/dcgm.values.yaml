@@ -1,0 +1,12 @@
+# Custom values for DCGM exporter to create proper node selections
+# see https://github.com/NVIDIA/dcgm-exporter
+
+# Establish known gpu node selections
+nodeSelector:
+  app.pixel/gpu: "true"
+
+# ensure scheduling is allowed based on OKE GPU node taints
+tolerations:
+  - key: "nvidia.com/gpu"
+    effect: "NoSchedule"
+    operator: "Exists"

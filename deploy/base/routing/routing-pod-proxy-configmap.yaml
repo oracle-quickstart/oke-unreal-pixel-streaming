@@ -1,0 +1,19 @@
+# ----------------------------------------------------------------------
+# Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+# The Universal Permissive License (UPL), Version 1.0
+# ----------------------------------------------------------------------
+
+# router/proxy layer configurations
+# (see src/router/README.md and src/proxy/README.md)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: routing-pod-proxy-config
+data:
+  enable: false
+  # expose only on this path
+  path.prefix: /
+  # specify the header key required for proxy entry
+  header.name: X-Proxy
+  # restrict pod proxy to comma-separated basic auth users
+  auth.users: ""
