@@ -1,3 +1,8 @@
+# ----------------------------------------------------------------------
+# Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+# The Universal Permissive License (UPL), Version 1.0
+# ----------------------------------------------------------------------
+
 # Custom values for DCGM exporter to create proper node selections
 # see https://github.com/NVIDIA/dcgm-exporter
 

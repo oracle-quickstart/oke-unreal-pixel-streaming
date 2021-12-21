@@ -1,3 +1,8 @@
+# ----------------------------------------------------------------------
+# Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+# The Universal Permissive License (UPL), Version 1.0
+# ----------------------------------------------------------------------
+
 # 
 # kube-prometheus-stack helm chart values. These additions work in conjunction with
 # the dcgm-exporter helm chart & data set
