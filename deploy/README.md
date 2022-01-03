@@ -80,7 +80,8 @@ For purposes of this example, the standard _Quick Create_ workflow with public A
 and private workers is considered adequate. Select alternatives, or customize as
 necessary.
 
-> Once created, note that the worker node subnet will use a `10.0.10.0/24` CIDR range.
+> Once created, note that the worker node subnet will have a `10.0.10.0/24` CIDR range.
+
 ### Turn Node Pool
 
 This node pool is used exclusively for the STUN/TURN services running [coturn][coturn].
