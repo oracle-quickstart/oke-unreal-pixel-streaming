@@ -18,14 +18,30 @@ provide ICE candidates to the signal service
 
 ## Cluster Setup
 
-There are three distinct node pools to use in this setup
+There are three distinct node pools to use in this setup. Specifics regarding
+node shape are suggested as baseline starting points, and can be customized by
+requirements.
 
-| Name | Description | Shape | Node Count |
+| Name | Description | Node Shape | Node Count |
 |--|--|--|--|
-| Default | General cluster workloads | `VM.Standard.E4.Flex` | 3+ |
+| [Default](#default-node-pool) | General cluster workloads | `VM.Standard.E4.Flex` | 3+ |
 | [Turn](#turn-node-pool) | Deploy `coturn` as DaemonSet with host networking | `VM.Standard.E4.Flex` | 1+ |
-| [GPU](#gpu-node-pool) | PixelStreaming runtime with signal server as sidecar | ? | 1+ |
+| [GPU](#gpu-node-pool) | PixelStreaming runtime with signal server as sidecar | * | 1+ |
 
+> `*` Specific GPU shape can also vary depending on the application and scaling demands.
+It is recommended to evaluate performance and settings accordingly.
+
+### Default Node Pool
+
+The default (or general) node pool is considered for multipurpose installations
+or cluster-wide resources such as ingress controller, telemetry services,
+applications, etc.
+
+For purposes of this example, the standard _Quick Create_ workflow with public API
+and private workers is considered adequate. Select alternatives, or customize as
+necessary.
+
+> Once created, note that the worker node subnet will use a `10.0.10.0/24` CIDR range.
 ### Turn Node Pool
 
 This node pool is used exclusively for the STUN/TURN services running [coturn][coturn].
