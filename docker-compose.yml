@@ -1,5 +1,5 @@
 # ----------------------------------------------------------------------
-# Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2021, 2022 Oracle and/or its affiliates. All rights reserved.
 # The Universal Permissive License (UPL), Version 1.0
 # ----------------------------------------------------------------------
 
@@ -34,7 +34,8 @@ services:
       - ./src/router/config/pod-proxy.yml:/config/pod-proxy.yml
   
   # forwarding proxy layer
-  pod-proxy:
+  podproxy:
+    image: podproxy
     build: ./src/proxy
     container_name: proxy
     restart: always
@@ -43,6 +44,7 @@ services:
   
   # web
   player:
+    image: player
     build: ./src/player
     container_name: player
     restart: always
@@ -52,6 +54,7 @@ services:
   
   # cirrus
   signalserver:
+    image: signalserver
     build: ./src/signalserver
     container_name: signalserver
     restart: always
@@ -76,6 +79,7 @@ services:
 
   # cirrus
   matchmaker:
+    image: matchmaker
     build: ./src/matchmaker
     container_name: matchmaker
     restart: always
@@ -95,6 +99,7 @@ services:
 
   # start turn, even though it won't do much good locally
   turn:
+    image: turn
     build: './src/turn'
     container_name: turn
     restart: always
@@ -106,6 +111,7 @@ services:
 
   # turn api
   turn-api:
+    image: turn-api
     build: ./src/turn-api
     container_name: turn-api
     restart: always
@@ -118,3 +124,10 @@ services:
       - ENDPOINT_FILE=/endpoints.json
     ports:
       - 3480:3000
+
+  # tools container (build only)
+  tools:
+    image: kubetools
+    build: ./src/kubetools
+    container_name: kubetools
+    restart: "no"

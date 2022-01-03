@@ -29,8 +29,8 @@ restricting this service are provided here, which depend on the `traefik`
 router exposing this service and may be used in tandem:
 
 - Specify [IP Whitelist](https://doc.traefik.io/traefik/middlewares/http/ipwhitelist/) rules
-- Define [Basic Auth](https://doc.traefik.io/traefik/middlewares/http/basicauth/) or [Digest Auth](https://doc.traefik.io/traefik/middlewares/http/digestauth/) credentials for integrated apps
 - Create a [Forward Auth](https://doc.traefik.io/traefik/middlewares/http/forwardauth/#forwardauth) service
+- Define [Basic Auth](https://doc.traefik.io/traefik/middlewares/http/basicauth/) or [Digest Auth](https://doc.traefik.io/traefik/middlewares/http/digestauth/) credentials for integrated apps
 
 Of the above options, the **Basic Auth** strategy is implemented in the associative
 traefik [../router](../router) layer, but others should be considered as needed.

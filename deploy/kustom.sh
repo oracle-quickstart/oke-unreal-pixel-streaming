@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ----------------------------------------------------------------------
-# Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2021, 2022 Oracle and/or its affiliates. All rights reserved.
 # The Universal Permissive License (UPL), Version 1.0
 # ----------------------------------------------------------------------
 
@@ -10,6 +10,7 @@ ENV_FILE="$DIR/.env"
 BASE="$DIR/base"
 KOVERLAY="$DIR/overlay"
 
+# echo to stderr
 echoerr() { echo "$@" 1>&2; }
 
 # establish env
@@ -38,16 +39,18 @@ if [ -z "$NAMESPACE" ]; then
   echoerr "WARN: Recommended setting 'NAMESPACE' variable (default: pixel)"
 fi
 
-# create kustom overlay
-echoerr "Create kustomization overlay: $KOVERLAY/"
+# Generate kustom overlay
+echoerr "Generate kustomization overlay: $KOVERLAY/"
 mkdir -p $KOVERLAY
 cd $KOVERLAY
 
-# create patches
-echoerr "create patches..."
+# Generate patches
+echoerr "Generate patches..."
+
+# patch the proxy service configuration
 cat <<EOF > patch-proxy-configmap.yaml
 # ----------------------------------------------------------------------
-# Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2021, 2022 Oracle and/or its affiliates. All rights reserved.
 # The Universal Permissive License (UPL), Version 1.0
 # ----------------------------------------------------------------------
 
@@ -63,9 +66,26 @@ data:
   auth.users: "${PROXY_AUTH_USERS}"
 EOF
 
+# patch the turn credentials
+cat <<EOF > patch-turn-credential.yaml
+# ----------------------------------------------------------------------
+# Copyright (c) 2021, 2022 Oracle and/or its affiliates. All rights reserved.
+# The Universal Permissive License (UPL), Version 1.0
+# ----------------------------------------------------------------------
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: turn-secret
+data:
+  username: $(printf "${TURN_USER:-turnuser}" | base64)
+  password: $(printf "${TURN_PASS:-turnpass}" | base64)
+EOF
+
+# patch ingress settings
 cat <<EOF > patch-ingress-host.yaml
 # ----------------------------------------------------------------------
-# Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2021, 2022 Oracle and/or its affiliates. All rights reserved.
 # The Universal Permissive License (UPL), Version 1.0
 # ----------------------------------------------------------------------
 
@@ -77,11 +97,11 @@ cat <<EOF > patch-ingress-host.yaml
   value: ${INGRESS_HOST:-pixeldemo.lb-ip-addr.nip.io}
 EOF
 
-# create overlay
-echoerr "create kustomization.yaml..."
+# Generate overlay
+echoerr "Generate kustomization.yaml..."
 cat <<EOF > kustomization.yaml
 # ----------------------------------------------------------------------
-# Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2021, 2022 Oracle and/or its affiliates. All rights reserved.
 # The Universal Permissive License (UPL), Version 1.0
 # ----------------------------------------------------------------------
 
@@ -98,6 +118,8 @@ bases:
 patchesStrategicMerge:
   # patch the proxy configmap
   - patch-proxy-configmap.yaml
+  # patch the turn username/password
+  - patch-turn-credential.yaml
 
 patchesJson6902:
   # patch the ingress hostname
@@ -143,5 +165,6 @@ images:
     newTag: ${IMAGE_TAG:-latest}
 EOF
 
-echoerr "Run kubectl kustomize on $KOVERLAY/kustomization.yaml"
+echoerr "Exec 'kubectl kustomize' from $KOVERLAY/kustomization.yaml"
+echoerr "---"
 kubectl kustomize .
