@@ -3,6 +3,28 @@
 This project represents a scalable pixel streaming deployment on Oracle
 Container Engine for Kubernetes (OKE)
 
+- [WebRTC Pixel Streaming on OKE](#webrtc-pixel-streaming-on-oke)
+  - [About WebRTC](#about-webrtc)
+  - [Cluster Setup](#cluster-setup)
+    - [Default Node Pool](#default-node-pool)
+    - [Turn Node Pool](#turn-node-pool)
+    - [GPU Node Pool](#gpu-node-pool)
+    - [Dependencies](#dependencies)
+  - [Build](#build)
+    - [Service Layers](#service-layers)
+    - [Pixel Streaming Build](#pixel-streaming-build)
+  - [Deploy](#deploy)
+  - [Telemetry](#telemetry)
+    - [Install Prometheus](#install-prometheus)
+    - [Add DCGM Exporter](#add-dcgm-exporter)
+    - [Prometheus Adapter](#prometheus-adapter)
+    - [Access Grafana](#access-grafana)
+  - [Scaling](#scaling)
+  - [Limitations](#limitations)
+    - [GPU Shapes](#gpu-shapes)
+  - [TODOs](#todos)
+  - [References](#references)
+
 ## About WebRTC
 
 WebRTC defines a web peering technology for real-time media and data streaming.
@@ -18,13 +40,30 @@ provide ICE candidates to the signal service
 
 ## Cluster Setup
 
-There are three distinct node pools to use in this setup
+There are three distinct node pools to use in this setup. Specifics regarding
+node shape are suggested as baseline starting points, and can be customized by
+requirements.
 
-| Name | Description | Shape | Node Count |
-|--|--|--|--|
-| Default | General cluster workloads | `VM.Standard.E4.Flex` | 3+ |
-| [Turn](#turn-node-pool) | Deploy `coturn` as DaemonSet with host networking | `VM.Standard.E4.Flex` | 1+ |
-| [GPU](#gpu-node-pool) | PixelStreaming runtime with signal server as sidecar | ? | 1+ |
+| Name                          | Description                                          | Node Shape            | Node Count |
+| ----------------------------- | ---------------------------------------------------- | --------------------- | ---------- |
+| [Default](#default-node-pool) | General cluster workloads                            | `VM.Standard.E4.Flex` | 3+         |
+| [Turn](#turn-node-pool)       | Deploy `coturn` as DaemonSet with host networking    | `VM.Standard.E4.Flex` | 1+         |
+| [GPU](#gpu-node-pool)         | PixelStreaming runtime with signal server as sidecar | *                     | 1+         |
+
+> `*` Specific GPU shape can also vary depending on the application and scaling demands.
+It is recommended to evaluate performance and settings accordingly.
+
+### Default Node Pool
+
+The default (or general) node pool is considered for multipurpose installations
+or cluster-wide resources such as ingress controller, telemetry services,
+applications, etc.
+
+For purposes of this example, the standard _Quick Create_ workflow with public API
+and private workers is considered adequate. Select alternatives, or customize as
+necessary.
+
+> Once created, note that the worker node subnet will have a `10.0.10.0/24` CIDR range.
 
 ### Turn Node Pool
 
@@ -43,26 +82,26 @@ a single node deployment:
 1. Assign the public route table to the public subnet (default from OKE is fine)
 1. Assign/update the _existing_ **node** security list for the TURN subnet CIDR block
   
-    | Dir | Source/Dest | Protocol | Src Port | Dest Port | Type/Code | Description |
-    |--|--|--|--|--|--|--|
-    | Ingress | `10.0.30.0/24` | All Protocols | * | * | | Allow pods on turn nodes to communicate with pods on other worker nodes |
-    | Egress | `10.0.30.0/24` | All Protocols | * | * | | Allow pods on turn nodes to communicate with pods on other worker nodes |
-    | Ingress | `0.0.0.0/0` | TCP | * | 3478 | | STUN TCP |
-    | Ingress | `0.0.0.0/0` | UDP | * | 3478 | | TURN UDP |
-    | Ingress | `0.0.0.0/0` | TCP | * | 49152-65535 | | STUN Connection ports |
-    | Ingress | `0.0.0.0/0` | UDP | * | 49152-65535 | | TURN Connection ports |
+    | Dir     | Source/Dest    | Protocol      | Src Port | Dest Port   | Type/Code | Description                                                             |
+    | ------- | -------------- | ------------- | -------- | ----------- | --------- | ----------------------------------------------------------------------- |
+    | Ingress | `10.0.30.0/24` | All Protocols | *        | *           |           | Allow pods on turn nodes to communicate with pods on other worker nodes |
+    | Egress  | `10.0.30.0/24` | All Protocols | *        | *           |           | Allow pods on turn nodes to communicate with pods on other worker nodes |
+    | Ingress | `0.0.0.0/0`    | TCP           | *        | 3478        |           | STUN TCP                                                                |
+    | Ingress | `0.0.0.0/0`    | UDP           | *        | 3478        |           | TURN UDP                                                                |
+    | Ingress | `0.0.0.0/0`    | TCP           | *        | 49152-65535 |           | STUN Connection ports                                                   |
+    | Ingress | `0.0.0.0/0`    | UDP           | *        | 49152-65535 |           | TURN Connection ports                                                   |
 
 1. Update K8s API endpoint security list to include ingress/egress to the turn CIDR block
 
-    | Dir | Source/Dest | Protocol | Src Port | Dest Port | Type/Code | Description |
-    |--|--|--|--|--|--|--|
-    | Ingress | `10.0.30.0/24` | TCP | * | 6443 | | turn worker to k8s API endpoint |
-    | Ingress | `10.0.30.0/24` | TCP | * | 12250 | | turn worker to OKE control plane |
-    | Ingress | `10.0.30.0/24` | ICMP |  | | 3, 4 | path discovery turn |
-    | Egress | `10.0.30.0/24` | ICMP |  | | 3, 4 | path discovery turn |
-    | Egress | `10.0.30.0/24` | TCP | * | * | | TURN traffic from worker nodes |
+    | Dir     | Source/Dest    | Protocol | Src Port | Dest Port | Type/Code | Description                      |
+    | ------- | -------------- | -------- | -------- | --------- | --------- | -------------------------------- |
+    | Ingress | `10.0.30.0/24` | TCP      | *        | 6443      |           | turn worker to k8s API endpoint  |
+    | Ingress | `10.0.30.0/24` | TCP      | *        | 12250     |           | turn worker to OKE control plane |
+    | Ingress | `10.0.30.0/24` | ICMP     |          |           | 3, 4      | path discovery turn              |
+    | Egress  | `10.0.30.0/24` | ICMP     |          |           | 3, 4      | path discovery turn              |
+    | Egress  | `10.0.30.0/24` | TCP      | *        | *         |           | TURN traffic from worker nodes   |
   
-1. Create the node pool using **Advanced Options** to specify additional k8s key-val labels:
+1. Create the node pool using **Advanced Options** to specify additional k8s key-value labels:
 
     ```text
     app.pixel/turn=true
@@ -146,7 +185,16 @@ aims to offer viability using the most basic/standard dependencies:
 ## Build
 
 All of the services/constructs are contained within this repo with the exception
-of the Unreal project source code. See more on this [below](#pixel-streaming-build)
+of the Unreal project source code. See more on this [below](#pixel-streaming-build).
+
+### Service Layers
+
+As a convenience all service images can be built with the following command:
+
+```sh
+# from project root
+docker compose build -f ../docker-compose.yml
+```
 
 Each service image should be built and pushed to the respective `OCIR` registy. Image tags
 can be found in the [./k8s/kustomization.yaml](./k8s/kustomization.yaml) file, however any
@@ -167,6 +215,7 @@ to sign up and register for access. Instructions are [here](https://github.com/E
 Once repo access is obtained, the basic build process is as follows:
 
 1. Authenticate to [`ghcr`](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#authenticating-to-the-container-registry)
+
 1. Build the unreal project
 
     ```sh
@@ -182,8 +231,8 @@ Once repo access is obtained, the basic build process is as follows:
 
 Although we've used `helm` to install various objects in the kubernetes environment,
 this Pixel Streaming demo deployment is designed using plain
-`kubectl` and [`kustomize`](https://kubernetes.io/ docs/tasks/manage-kubernetes-objects/kustomization/) commands directly to de-mystify the k8s manifests in our runtime and offer
-higher transparency to the readers :).
+`kubectl` and [`kustomize`](https://kubernetes.io/docs/tasks/manage-kubernetes-objects/kustomization/) commands directly to de-mystify the k8s manifests in our runtime
+, offering higher transparency to the readers :).
 
 1. As a first step, create a namespace for our application and it's respective systems
 
@@ -192,7 +241,7 @@ higher transparency to the readers :).
     kubectl create ns $NAMESPACE
     ```
 
-1. Create an OCIR registry secret (refer to [documentation](https://docs.oracle.com/en-us/iaas/Content/Registry/Tasks/registrypushingimagesusingthedockercli.htm))
+2. Create an OCIR registry secret (refer to [documentation](https://docs.oracle.com/en-us/iaas/Content/Registry/Tasks/registrypushingimagesusingthedockercli.htm))
 
     ```sh
     kubectl create secret docker-registry ocirsecret \
@@ -203,7 +252,7 @@ higher transparency to the readers :).
       --namespace $NAMESPACE
     ```
 
-1. Optionally locate an ingress controller ip address for use of a wilcard dns name from [nip.io](https://nip.io)
+3. Optionally locate an ingress controller ip address for use of a wilcard dns name from [nip.io](https://nip.io)
 
     ```sh
     # get public ip address
@@ -214,7 +263,7 @@ higher transparency to the readers :).
 
     > Set the ip dns name in `.env` below
 
-1. Create a `.env` file in this directory, with configurations like the following:
+4. Create a `.env` file in this directory, with configurations like the following:
 
     ```sh
     # kubernetes namespace for pixel streaming
@@ -227,30 +276,36 @@ higher transparency to the readers :).
     UNREAL_CONTAINER=my-pixelstream
     # a hostname to use (nip.io hex example)
     INGRESS_HOST=my-pixelstream.aaabb000.nip.io
+    # specify initial TURN service username
+    TURN_USER=userx0000
+    # also specify a turn password
+    TURN_PASS=passx1111
+    # specify whether or not to enable the pod proxy
+    PROXY_ENABLE=false
     # configure proxy prefix
     PROXY_PATH_PREFIX=/proxy
     # configure basic auth users (unreal/demo) https://doc.traefik.io/traefik/middlewares/http/basicauth/
     PROXY_AUTH_USERS='unreal:$apr1$AWc55mzG$TwDga0HZBRTBTGLHdDkUS/'
     ```
 
-1. Use the [./kustom.sh](./kustom.sh) wrapper to generate a kustomization overlay and (optionally) apply:
+5. Use the [./kustom.sh](./kustom.sh) wrapper to generate a kustomization overlay and (optionally) apply:
 
     ```sh
     # run to generate ./overlay and output manifests 
     ./kustom.sh
-    # generate ./overlay and apply the manifests
+    # generate ./overlay AND apply the manifests
     ./kustom.sh | kubectl apply -f -
     ```
 
     > **NOTE** to delete, just run `./kustom.sh | kubectl delete -f -`
 
-1. Inspect objects created in the cluster on `pixel` namespace
+6. Inspect objects created in the cluster on `pixel` namespace
 
     ```sh
     kubectl get all -n pixel
     ```
 
-1. Checkout the traefik proxy dashboard
+7. Checkout the traefik proxy dashboard
 
     ```sh
     kubectl -n pixel port-forward service/router 8080
@@ -347,32 +402,32 @@ The installation is pre-loaded with several useful kubernetes dashboards. In ord
 to see GPU metrics, we'll add a dashboard related specifically to the `dcgm-exporter`
 metrics.
 
-Get the grafana `admin` password:
+1. Get the grafana `admin` password:
 
-```sh
-kubectl get secret prometheus-stack-grafana \
-  -n prometheus \
-  -o jsonpath="{.data.admin-password}" | base64 --decode
-```
+    ```sh
+    kubectl get secret prometheus-stack-grafana \
+      -n prometheus \
+      -o jsonpath="{.data.admin-password}" | base64 --decode
+    ```
 
-> The `admin` account password defaults to `prom-operator` in the prometheus helm chart
+    > The `admin` account password defaults to `prom-operator` in the prometheus helm chart
 
-In order to access the grafana user interface, you can enable ingress
+1. In order to access the grafana user interface, you can enable ingress
 through the `kube-prometheus-stack` `grafana` settings or define it separately.
 
-Based on the prometheus installation, the grafana service will be named
-`prometheus-stack-grafana`. For now, we just do a local port-forward on to the service
-and open the dashboard.
+    - Based on the prometheus installation, the grafana service will be named
+    `prometheus-stack-grafana`. For now, simply open a local port-forward on to the service
+    and load the dashboard.
 
-```sh
-kubectl port-forward svc/prometheus-stack-grafana -n prometheus 8000:80
-```
+        ```sh
+        kubectl port-forward svc/prometheus-stack-grafana -n prometheus 8000:80
+        ```
 
-> Open [localhost:8000](http://localhost:8000) and use the admin credentials found above.
+    - Open [localhost:8000](http://localhost:8000) and use the admin credentials found above.
 
-Once Grafana is opened, be sure to import the [DCGM exporter dashboard][dcgm-exporter-dashboard]
+1. Once Grafana is opened, be sure to import the [DCGM exporter dashboard][dcgm-exporter-dashboard]
 
-> Navigate to `+ -> Import -> 12239` (`12239` is the DCGM dashboard)
+    - Navigate to `+ -> Import -> 12239` (`12239` is the DCGM dashboard)
 
 ## Scaling
 
@@ -391,40 +446,32 @@ Applies the heuristic notion [`pod-deletion-cost`](https://kubernetes.io/docs/co
 ## TODOs
 
 - Create stun/turn autoscaling metrics
-- Leverage an auth/affinity system to negotiate available pixel streaming system
-- Establish custom metrics to scale gpu pool according to number of runtimes
-  - Maybe websocket connections could work
 - Separate ingress with service mesh and virtual service namespacing
-- Determine how best to autoscale (nodes and pods) based on GPU avail and app design
-- Handle automatic taints on node autoscaling... Daemonset?
-- Introduce Argo Events for cloud native management
-- Investigate `emitUIInteraction` problems that seem to kill the player upon next connection when WebRTC or Encoder Changes are made
+- Revisit autoscale (nodes and pods) based on GPU avail and app design
 - Use [`pod-deletion-cost`](https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/#pod-deletion-cost) for replicaset scaling order/preference
-- UPDATES to handle `SIGTERM` signals from scheduler
-- Introduce `traefik` reverse proxy for streamer rest and/or websockets
 
 ## References
 
 Below is a list of helpful references with concepts applied within this
 architecture
 
-| Link | About |
-|--|--|
-| [TURN servers for cloud](https://devblogs.microsoft.com/cse/2018/01/29/orchestrating-turn-servers-cloud-deployment/) | has some good information about `coturn` in docker |
-| [GCP WebRTC + GPU](https://cloud.google.com/architecture/orchestrating-gpu-accelerated-streaming-apps-using-webrtc) | perhaps the holy grail of related examples. It does not relate to pixel streaming, but much of the architecture is derived from this example |
-| [Trickle ICE](https://webrtc.github.io/samples/src/content/peerconnection/trickle-ice/) | Tests STUN/TURN |
-| [Pion TURN][pion-turn] | Alternate to `coturn` |
-| - | |
-| [UE4 Containers](https://docs.unrealengine.com/4.27/en-US/SharingAndReleasing/Containers/ContainersOverview/) | Unreal Engine official docs on general container usage |
-| [unrealcontainers.com](https://unrealcontainers.com/docs/use-cases/pixel-streaming) | resource created by Adam Rehn - AKA God of Unreal running in Linux/Containers |
-| [Unreal Engine Images](https://github.com/orgs/EpicGames/packages/container/unreal-engine/versions) | requires permissions with Epic Games, but this is where the `ghcr.io` base images from Unreal live |
-| [Unreal Image EULA](https://unrealcontainers.com/docs/obtaining-images/eula-restrictions) | Information on how Unreal Engine EULA restricts the distribution of Unreal Engine container images |
-| - | |
-| [NVIDIA containers][nvidia-containers] | Information from NVIDIA on GPUs in cloud native |
-| [NVIDIA GPU Monitoring][nvidia-gpu-telemetry] | How to collect GPU metrics for prometheus in k8s (Data Center GPU Metrics exporter) |
-| [GPU Monitoring Tools][gpu-monitoring-tools] | Helm charts for GPU Telemetry |
-| [MIG Support][mig-k8s] | Multi-instance GPU partitioning support (NVIDIA A100) |
-| [Oracle GPU](https://www.oracle.com/cloud/partners/gpu.html) | Oracle Cloud Infrastructure NVIDIA GPU Instances |
+| Link                                                                                                                 | About                                                                                                                                        |
+| -------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| [TURN servers for cloud](https://devblogs.microsoft.com/cse/2018/01/29/orchestrating-turn-servers-cloud-deployment/) | has some good information about `coturn` in docker                                                                                           |
+| [GCP WebRTC + GPU](https://cloud.google.com/architecture/orchestrating-gpu-accelerated-streaming-apps-using-webrtc)  | perhaps the holy grail of related examples. It does not relate to pixel streaming, but much of the architecture is derived from this example |
+| [Trickle ICE](https://webrtc.github.io/samples/src/content/peerconnection/trickle-ice/)                              | Tests STUN/TURN                                                                                                                              |
+| [Pion TURN][pion-turn]                                                                                               | Alternate to `coturn`                                                                                                                        |
+| -                                                                                                                    |                                                                                                                                              |
+| [UE4 Containers](https://docs.unrealengine.com/4.27/en-US/SharingAndReleasing/Containers/ContainersOverview/)        | Unreal Engine official docs on general container usage                                                                                       |
+| [unrealcontainers.com](https://unrealcontainers.com/docs/use-cases/pixel-streaming)                                  | resource created by Adam Rehn - AKA God of Unreal running in Linux/Containers                                                                |
+| [Unreal Engine Images](https://github.com/orgs/EpicGames/packages/container/unreal-engine/versions)                  | requires permissions with Epic Games, but this is where the `ghcr.io` base images from Unreal live                                           |
+| [Unreal Image EULA](https://unrealcontainers.com/docs/obtaining-images/eula-restrictions)                            | Information on how Unreal Engine EULA restricts the distribution of Unreal Engine container images                                           |
+| -                                                                                                                    |                                                                                                                                              |
+| [NVIDIA containers][nvidia-containers]                                                                               | Information from NVIDIA on GPUs in cloud native                                                                                              |
+| [NVIDIA GPU Monitoring][nvidia-gpu-telemetry]                                                                        | How to collect GPU metrics for prometheus in k8s (Data Center GPU Metrics exporter)                                                          |
+| [GPU Monitoring Tools][gpu-monitoring-tools]                                                                         | Helm charts for GPU Telemetry                                                                                                                |
+| [MIG Support][mig-k8s]                                                                                               | Multi-instance GPU partitioning support (NVIDIA A100)                                                                                        |
+| [Oracle GPU](https://www.oracle.com/cloud/partners/gpu.html)                                                         | Oracle Cloud Infrastructure NVIDIA GPU Instances                                                                                             |
 
 <!-- links -->
 [mig-k8s]:https://docs.nvidia.com/datacenter/cloud-native/kubernetes/mig-k8s.html

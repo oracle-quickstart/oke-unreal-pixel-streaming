@@ -1,5 +1,5 @@
 # ----------------------------------------------------------------------
-# Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2021, 2022 Oracle and/or its affiliates. All rights reserved.
 # The Universal Permissive License (UPL), Version 1.0
 # ----------------------------------------------------------------------
 
@@ -14,4 +14,4 @@ data:
   # specify the proxy router prefix
   path.prefix: "/proxy"
   # specify a source ip whitelist as comma-separated IP/CIDR blocks
-  ip.whitelist: "0.0.0.0/0"
+  auth.users: ""
