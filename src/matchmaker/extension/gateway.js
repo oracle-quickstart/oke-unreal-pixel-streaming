@@ -5,6 +5,7 @@
 const Net = require('net');
 const Http = require('http');
 const WebSocket = require('ws');
+const { v4: uuid } = require('uuid');
 const { promisify } = require('util');
 const { EventEmitter } = require('events');
 const MetricsAdapter = require('./metrics');
@@ -110,12 +111,11 @@ class PlayerConnectionGateway extends Common {
     if (size) {
       this._log(`dequeue ${size} waiting player(s)`);
       for (const player of this.queue.values()) {
-        const server = this.nextAvailable();
-        if (!server) {
-          this._log('more players than available servers. await next status change')
-          break;
-        } else {
+        const server = this.nextAvailable(player);
+        if (server) {
           this.assignPlayer(player, server);
+        } else {
+          this._log('unmatched stream for player', player.id);
         }
       }
     }
@@ -123,14 +123,16 @@ class PlayerConnectionGateway extends Common {
 
   /**
    * obtain a server with available connection
+   * @param {VirtualPlayer} player queued/waiting connection
    * @returns {object} matched server
    */
-  nextAvailable() {
+  nextAvailable(player) {
     const liveTime = Date.now() - 6e4; // last ping threshold within last minute
     for (const server of this.pool.values()) {
-      if (server.numConnectedClients === 0 && !server.allocated && // unreserved
+      if (!server.allocated && // unreserved
         server.lastPingReceived >= liveTime &&    // still beating
-        (server.ready === true || this._debug)) { // readiness
+        (server.ready === true || this._debug) && // readiness
+        player.checkStreamCandidate(server)) { // player specific checks
         return server;
       }
     }
@@ -160,7 +162,7 @@ class PlayerConnectionGateway extends Common {
   }
 
   /**
-   * call
+   * handle connection from a streamer application
    * @param {net.Socket} connection 
    * @see https://nodejs.org/api/net.html#class-netsocket
    */
@@ -186,7 +188,7 @@ class PlayerConnectionGateway extends Common {
   onClientConnection(ws, req) {
     this._log('client connected', req.url);
     // add the player to a list of waiting players
-    const player = new VirtualPlayer(ws);
+    const player = new VirtualPlayer(ws, req.url);
     // auto dequeue on disconnect
     this.queue.add(player
       .on('disconnect', () => this.queue.delete(player)));
@@ -208,10 +210,11 @@ class VirtualPlayer extends Common {
    * instantiate with the waiting client websocket
    * @param {WebSocket} ws 
    */
-  constructor(ws) {
+  constructor(ws, url) {
     super();
-    this.id = VirtualPlayer.id++;
-    this._log('created virtual player instance');
+    this.id = uuid();
+    this.search = parseQuery(url);
+    this._log('created virtual player instance:', this.id);
     // create heartbeat
     const hb = setInterval(this._clientHeartbeat.bind(this), 3e4);
     // setup on the client ws connection
@@ -236,6 +239,23 @@ class VirtualPlayer extends Common {
     } else {
       ws.alive = false;
       ws.ping();
+    }
+  }
+
+  /**
+   * Evaluate candidacy of a player for the given stream
+   * @param {*} stream
+   * @returns {boolean}
+   */
+  checkStreamCandidate(stream) {
+    const { id, address, numConnectedClients } = stream;
+    const spec = this.search.get('id') || this.search.get('address');
+    if (spec) {
+      // evaluate against matching id or ip address
+      return [id, address].includes(spec);
+    } else {
+      // assume player just wants an empty session
+      return numConnectedClients === 0;
     }
   }
 

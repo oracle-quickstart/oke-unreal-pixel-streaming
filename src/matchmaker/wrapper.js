@@ -3,6 +3,7 @@
  * The Universal Permissive License (UPL), Version 1.0
  */
 const WebSocket = require('ws');
+const { v4: uuid } = require('uuid');
 const { promisify } = require('util');
 
 // bring in custom utils
@@ -158,8 +159,9 @@ class MatchmakerWrapper {
             if (c) {
               this._info('extend streamer configuration');
               Object.assign(c, {
-                address, // overload address as the internal connection (pod ip)
-                restPort: msg.restPort, // the stream api port
+                id: uuid(), // create an identifier
+                address,    // overload address as the internal connection (pod ip)
+                restPort: msg.restPort || null, // the stream api port
               });
             } else {
               this._error('could not locate cirrus on connection');
