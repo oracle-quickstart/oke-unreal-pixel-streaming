@@ -86,12 +86,6 @@ spec:
                   optional: true
                   name: routing-pod-proxy-config
                   key: enable
-            - name: PROXY_HEADER_NAME
-              valueFrom:
-                configMapKeyRef:
-                  optional: true
-                  name: routing-pod-proxy-config
-                  key: header.name
             - name: PROXY_PATH_PREFIX
               valueFrom:
                 configMapKeyRef:

@@ -12,8 +12,6 @@ metadata:
 data:
   enable: false
   # expose only on this path
-  path.prefix: /
-  # specify the header key required for proxy entry
-  header.name: X-Proxy
+  path.prefix: /proxy
   # restrict pod proxy to comma-separated basic auth users
   auth.users: ""

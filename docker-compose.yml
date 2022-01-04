@@ -23,8 +23,7 @@ services:
       # enable proxy for testing
       - PROXY_ENABLE=true
       - PROXY_ADDRESS=pod-proxy:8080
-      - PROXY_PATH_PREFIX=/
-      - PROXY_HEADER_NAME=X-Proxy
+      - PROXY_PATH_PREFIX=/proxy
       - PROXY_AUTH_USERS=test:$$apr1$$fyf6DNyt$$oUgxHXVK5iD1b6U/zLTrr. # test/local
     ports:
       - 80:80
