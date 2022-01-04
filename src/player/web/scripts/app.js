@@ -1870,7 +1870,7 @@ function connect() {
     (window.location.protocol === 'https:' ? 'wss://' : 'ws://') +
       window.location.hostname + // host
       window.location.pathname.split('/').slice(0, -1).join('/') + // path components
-      '/ws'; // websocket route
+      '/ws' + window.location.search; // websocket route
   ws = new WebSocket(wsUrl);
 
   ws.onmessage = function (event) {
