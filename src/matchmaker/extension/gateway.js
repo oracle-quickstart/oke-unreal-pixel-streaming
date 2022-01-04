@@ -129,7 +129,7 @@ class PlayerConnectionGateway extends Common {
   nextAvailable(player) {
     const liveTime = Date.now() - 6e4; // last ping threshold within last minute
     for (const server of this.pool.values()) {
-      if (!server.allocated && // unreserved
+      if (!server.offered && // being offered
         server.lastPingReceived >= liveTime &&    // still beating
         (server.ready === true || this._debug) && // readiness
         player.checkStreamCandidate(server)) { // player specific checks
@@ -146,18 +146,19 @@ class PlayerConnectionGateway extends Common {
   assignPlayer(player, server) {
     this.queue.delete(player);
     if (isOpen(player.ws)) {
-      server.allocated = true;
+      // flag server as being offered
+      server.offered = true;
       // handle dealloc
-      const freeServer = () => server.allocated = false;
+      const finishOffer = () => server.offered = null;
       player
         // if the streamer dropped, add player back to queue
-        .on('drop', () => isOpen(player.ws) && this.queue.add(player))
-        // when the player disconnects
-        .on('disconnect', freeServer)
+        .once('drop', () => isOpen(player.ws) && this.queue.add(player))
+        // when the player connects, free the server
+        .once('connect', finishOffer)
         // make connection (returns the new socket to signal server)
         .connectStreamer(server)
           // likely a problem with the streamer... might not be reusable
-          .on('error', freeServer);
+          .on('error', finishOffer);
     }
   }
 
@@ -304,13 +305,14 @@ class VirtualPlayer extends Common {
 
     // setup base connection and listeners
     const { port, address } = backend;
-    const ss = this.stream = new WebSocket(`ws://${address}:${port}?player=${this._id}`);
+    const ss = this.stream = new WebSocket(`ws://${address}:${port}?player=${this.id}`);
     ss.on('open', pong)
       .on('ping', pong)
       .on('close', function clear() { clearTimeout(this.pingTimeout) })
 
     // hook up functional listeners
     ss.on('open', () => this._log('connected to signal server'))
+      .on('open', () => this.emit('connect'))
       .on('close', (e) => this.handleStreamerClose(e))
       .on('message', this.onStreamerMessage.bind(this));
 
