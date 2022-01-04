@@ -125,6 +125,30 @@ function CustomLoad() {
 	// onDataChannelConnected = function() { emitUIInteraction("4K"); };
   // MV: disable this... it's broken anyway
 	// addResponseEventListener("handle_responses", myHandleResponseFunction);
+
+  // add listener to identify the stream
+  stateNoticeEventListeners.add(function(event) {
+    if (event.type === 'matchmaker') {
+      var detail = event.detail;
+      var pnode = document.getElementById('overlaySettings');
+      var node = pnode.querySelector('#streamIdentifier')
+      if (!node) {
+        node = document.createElement('div');
+        node.setAttribute('id', 'streamIdentifier');
+        node.classList.add('statsContainer', 'userSelect');
+        pnode.appendChild(node);
+      }
+      if (detail.address) {
+        node.innerHTML = [
+          'Connected:',
+          `ID: ${detail.id || 'null'}`,
+          `IP: ${detail.address || 'null'}`,
+        ].join('<br/>');
+      } else {
+        node.innerHTML = 'Disconnected';
+      }
+    }
+  })
 }
 
 function onFullscreenChange(data)
