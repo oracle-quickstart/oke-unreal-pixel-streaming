@@ -6,7 +6,6 @@ const Net = require('net');
 const Http = require('http');
 const WebSocket = require('ws');
 const { v4: uuid } = require('uuid');
-const { promisify } = require('util');
 const { EventEmitter } = require('events');
 const MetricsAdapter = require('./metrics');
 
@@ -44,10 +43,11 @@ class PlayerConnectionGateway extends Common {
    * @param {Net.Server} options.matchmaker the matchmaker TCP server
    * @param {Map<*>} options.pool cirrus server pool
    * @param {MetricsAdapter} options.metrics metrics adapter
+   * @param {number} options.lastPingMax maximum time since last ping before removal
    */
   constructor(options) {
     super();
-    const { server, matchmaker, pool, metrics } = options || {};
+    const { server, matchmaker, pool, metrics, lastPingMax } = options || {};
     if (!(server instanceof Http.Server)) {
       throw new Error('Http server is required for PlayerConnectionGateway');
     }
@@ -61,6 +61,10 @@ class PlayerConnectionGateway extends Common {
       throw new Error('Metrics adapter instance is required');
     }
 
+    // get the maximum time elapsed since last ping
+    this.pingMax = lastPingMax || null;
+
+    // for debug/development
     this._debug = !!process.env.DEBUG;
 
     // setup lookup/pool finding
@@ -127,7 +131,7 @@ class PlayerConnectionGateway extends Common {
    * @returns {object} matched server
    */
   nextAvailable(player) {
-    const liveTime = Date.now() - 6e4; // last ping threshold within last minute
+    const liveTime = this.pingMax ? Date.now() - this.pingMax : 0;
     for (const server of this.pool.values()) {
       if (!server.offered && // being offered
         server.lastPingReceived >= liveTime &&    // still beating
