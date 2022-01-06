@@ -37,9 +37,8 @@ A sample traefik dashboard looks like this when all options are configured:
 | `PLAYER_ADDRESS` | Player service url (ie: `player:8080`) | Y | |
 | `MATCHMAKER_ADDRESS` | Matchmaker service url (ie: `matchmaker:3000`)  | Y | |
 | `PROXY_ENABLE` | Proxy service address. The proxy is excluded if empty | N | `false` |
-| `PROXY_ADDRESS` | Specify the proxy service address. | N | |
-| `PROXY_PATH_PREFIX` | Path prefix for dynamic proxy service | N | `/` |
-| `PROXY_HEADER_NAME` | Declare the header name for proxy route | N | `X-Proxy` |
+| `PROXY_ADDRESS` | Specify the pod proxy service address | N | |
+| `PROXY_PATH_PREFIX` | Path prefix for dynamic proxy service | N | `/proxy` |
 | `PROXY_AUTH_USERS` | Restrict proxy traffic as comma-separated [basic auth](https://doc.traefik.io/traefik/middlewares/http/basicauth/) users | N |  |
 
 > **NOTE** the provided `player` service expects the websocket path to be `/ws`

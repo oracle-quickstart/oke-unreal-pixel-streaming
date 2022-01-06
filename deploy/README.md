@@ -15,7 +15,7 @@ Container Engine for Kubernetes (OKE)
     - [Pixel Streaming Build](#pixel-streaming-build)
   - [Deploy](#deploy)
   - [Telemetry](#telemetry)
-    - [Install Prometheus](#install-prometheus)
+    - [Install Prometheus Stack](#install-prometheus-stack)
     - [Add DCGM Exporter](#add-dcgm-exporter)
     - [Prometheus Adapter](#prometheus-adapter)
     - [Access Grafana](#access-grafana)
@@ -318,7 +318,7 @@ this Pixel Streaming demo deployment is designed using plain
 GPU Telemetry is done through the use of prometheus and the DCGM exporter. Setup and configuration
 details can be found in the [NVIDIA Documentation][nvidia-gpu-telemetry]
 
-### Install Prometheus
+### Install Prometheus Stack
 
 A [values](./support/prometheus.values.yaml) file for the `prometheus` stack is provided
 with settings to include GPU metrics from `dcgm-exporter`. These values

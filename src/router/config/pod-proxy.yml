@@ -5,9 +5,8 @@
 
 # process variables
 {{- $includeProxy := and (eq "true" (env "PROXY_ENABLE")) (not (empty (env "PROXY_ADDRESS"))) }}
-{{- $proxyPrefix := default "/" (env "PROXY_PATH_PREFIX") }}
+{{- $proxyPrefix := default "/proxy" (env "PROXY_PATH_PREFIX") }}
 {{- $proxyUserList := compact (splitList "," (default "" (env "PROXY_AUTH_USERS"))) }}
-{{- $proxyHeaderName := default "X-Proxy" (env "PROXY_HEADER_NAME") }}
 
 # optionally define necessary routing if the dynamic proxy is specified
 {{- if $includeProxy }}
@@ -31,9 +30,7 @@ http:
   routers:
     # specify the dynamic proxy route
     pod-proxy:
-      rule: |
-        Headers(`{{ $proxyHeaderName }}`, `true`) &&
-        PathPrefix(`{{ $proxyPrefix }}{addr:[a-z0-9/.]+}`)
+      rule: PathPrefix(`{{ $proxyPrefix }}{addr:[a-z0-9/.]+}`)
       service: pod-proxy
       middlewares:
         - proxy-strip-prefix

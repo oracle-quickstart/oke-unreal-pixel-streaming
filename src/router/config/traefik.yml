@@ -3,6 +3,7 @@
 # The Universal Permissive License (UPL), Version 1.0
 # ----------------------------------------------------------------------
 
+# interpret env vars
 {{- $webPrefix := default "/" (env "WEB_PATH_PREFIX") }}
 {{- $socketPrefix := default "/ws" (env "SOCKET_PATH_PREFIX") }}
 
@@ -40,5 +41,9 @@ http:
     # matchmaker endpoint
     matchmaker:
       loadBalancer:
+        sticky:
+          cookie:
+            secure: true
+            httpOnly: true
         servers:
           - url: http://{{ env "MATCHMAKER_ADDRESS" }}

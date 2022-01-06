@@ -3,11 +3,15 @@
  * The Universal Permissive License (UPL), Version 1.0
  */
 const WebSocket = require('ws');
+const { v4: uuid } = require('uuid');
 const { promisify } = require('util');
 
 // bring in custom utils
 const MetricsAdapter = require('./extension/metrics');
 const PlayerConnectionGateway = require('./extension/gateway');
+
+// threshold for identifying dead connections
+const LAST_PING_MAX = 6e4;
 
 /**
  * This wrapper class orchestrates the matchmaker runtime with some customizations
@@ -29,10 +33,11 @@ class MatchmakerWrapper {
     // instantiate the custom gateway, and metrics
     this.metrics = new MetricsAdapter({ port: metricsPort, prefix: 'matchmaker_' });
     this.gateway = new PlayerConnectionGateway({
-      server: http, // reuse the http server
-      matchmaker,   // attach to matchmaker net.server
-      pool: cirrusServers, // forward the pool
-      metrics: this.metrics,
+      lastPingMax: LAST_PING_MAX, // threshold for identifying dead connections
+      server: http,           // reuse the http server
+      matchmaker,             // attach to matchmaker net.server
+      pool: cirrusServers,    // forward the pool
+      metrics: this.metrics,  // provide metrics hooks
     });
     this.registerSocketShutdown(this.gateway.wss);
 
@@ -145,6 +150,11 @@ class MatchmakerWrapper {
     // add basic list api
     app.get('/list', (req, res) => res.json([...cirrusServers.values()]));
 
+    // setup pool monitor to detect lost pings (cirrus pings every 30s)
+    setInterval(() => [...cirrusServers.values()]
+      .filter(c => c.lastPingReceived < Date.now() - LAST_PING_MAX)
+      .forEach(c => cirrusServers.delete(c)), LAST_PING_MAX / 2);
+
     // handle cirrus connections (after main matchmaker.js)
     matchmaker.on('connection', connection => {
       // must capture the remote address of this connection.
@@ -158,8 +168,9 @@ class MatchmakerWrapper {
             if (c) {
               this._info('extend streamer configuration');
               Object.assign(c, {
-                address, // overload address as the internal connection (pod ip)
-                restPort: msg.restPort, // the stream api port
+                id: uuid(), // create an identifier
+                address,    // overload address as the internal connection (pod ip)
+                restPort: msg.restPort || null, // the stream api port
               });
             } else {
               this._error('could not locate cirrus on connection');

@@ -5,7 +5,7 @@
 const Net = require('net');
 const Http = require('http');
 const WebSocket = require('ws');
-const { promisify } = require('util');
+const { v4: uuid } = require('uuid');
 const { EventEmitter } = require('events');
 const MetricsAdapter = require('./metrics');
 
@@ -43,10 +43,11 @@ class PlayerConnectionGateway extends Common {
    * @param {Net.Server} options.matchmaker the matchmaker TCP server
    * @param {Map<*>} options.pool cirrus server pool
    * @param {MetricsAdapter} options.metrics metrics adapter
+   * @param {number} options.lastPingMax maximum time since last ping before removal
    */
   constructor(options) {
     super();
-    const { server, matchmaker, pool, metrics } = options || {};
+    const { server, matchmaker, pool, metrics, lastPingMax } = options || {};
     if (!(server instanceof Http.Server)) {
       throw new Error('Http server is required for PlayerConnectionGateway');
     }
@@ -60,6 +61,10 @@ class PlayerConnectionGateway extends Common {
       throw new Error('Metrics adapter instance is required');
     }
 
+    // get the maximum time elapsed since last ping
+    this.pingMax = lastPingMax || null;
+
+    // for debug/development
     this._debug = !!process.env.DEBUG;
 
     // setup lookup/pool finding
@@ -110,12 +115,11 @@ class PlayerConnectionGateway extends Common {
     if (size) {
       this._log(`dequeue ${size} waiting player(s)`);
       for (const player of this.queue.values()) {
-        const server = this.nextAvailable();
-        if (!server) {
-          this._log('more players than available servers. await next status change')
-          break;
-        } else {
+        const server = this.nextAvailable(player);
+        if (server) {
           this.assignPlayer(player, server);
+        } else {
+          this._log('unmatched stream for player', player.id);
         }
       }
     }
@@ -123,14 +127,16 @@ class PlayerConnectionGateway extends Common {
 
   /**
    * obtain a server with available connection
+   * @param {VirtualPlayer} player queued/waiting connection
    * @returns {object} matched server
    */
-  nextAvailable() {
-    const liveTime = Date.now() - 6e4; // last ping threshold within last minute
+  nextAvailable(player) {
+    const liveTime = this.pingMax ? Date.now() - this.pingMax : 0;
     for (const server of this.pool.values()) {
-      if (server.numConnectedClients === 0 && !server.allocated && // unreserved
+      if (!server.offered && // being offered
         server.lastPingReceived >= liveTime &&    // still beating
-        (server.ready === true || this._debug)) { // readiness
+        (server.ready === true || this._debug) && // readiness
+        player.checkStreamCandidate(server)) { // player specific checks
         return server;
       }
     }
@@ -144,23 +150,24 @@ class PlayerConnectionGateway extends Common {
   assignPlayer(player, server) {
     this.queue.delete(player);
     if (isOpen(player.ws)) {
-      server.allocated = true;
+      // flag server as being offered
+      server.offered = true;
       // handle dealloc
-      const freeServer = () => server.allocated = false;
+      const finishOffer = () => server.offered = null;
       player
         // if the streamer dropped, add player back to queue
-        .on('drop', () => isOpen(player.ws) && this.queue.add(player))
-        // when the player disconnects
-        .on('disconnect', freeServer)
+        .once('drop', () => isOpen(player.ws) && this.queue.add(player))
+        // when the player connects, free the server
+        .once('connect', finishOffer)
         // make connection (returns the new socket to signal server)
         .connectStreamer(server)
           // likely a problem with the streamer... might not be reusable
-          .on('error', freeServer);
+          .on('error', finishOffer);
     }
   }
 
   /**
-   * call
+   * handle connection from a streamer application
    * @param {net.Socket} connection 
    * @see https://nodejs.org/api/net.html#class-netsocket
    */
@@ -186,7 +193,7 @@ class PlayerConnectionGateway extends Common {
   onClientConnection(ws, req) {
     this._log('client connected', req.url);
     // add the player to a list of waiting players
-    const player = new VirtualPlayer(ws);
+    const player = new VirtualPlayer(ws, req.url);
     // auto dequeue on disconnect
     this.queue.add(player
       .on('disconnect', () => this.queue.delete(player)));
@@ -208,10 +215,11 @@ class VirtualPlayer extends Common {
    * instantiate with the waiting client websocket
    * @param {WebSocket} ws 
    */
-  constructor(ws) {
+  constructor(ws, url) {
     super();
-    this.id = VirtualPlayer.id++;
-    this._log('created virtual player instance');
+    this.id = uuid();
+    this.search = parseQuery(url);
+    this._log('created virtual player instance:', this.id);
     // create heartbeat
     const hb = setInterval(this._clientHeartbeat.bind(this), 3e4);
     // setup on the client ws connection
@@ -236,6 +244,23 @@ class VirtualPlayer extends Common {
     } else {
       ws.alive = false;
       ws.ping();
+    }
+  }
+
+  /**
+   * Evaluate candidacy of a player for the given stream
+   * @param {*} stream
+   * @returns {boolean}
+   */
+  checkStreamCandidate(stream) {
+    const { id, address, numConnectedClients } = stream;
+    const spec = this.search.get('id') || this.search.get('address');
+    if (spec) {
+      // evaluate against matching id or ip address
+      return [id, address].includes(spec);
+    } else {
+      // assume player just wants an empty session
+      return numConnectedClients === 0;
     }
   }
 
@@ -284,13 +309,14 @@ class VirtualPlayer extends Common {
 
     // setup base connection and listeners
     const { port, address } = backend;
-    const ss = this.stream = new WebSocket(`ws://${address}:${port}?player=${this._id}`);
+    const ss = this.stream = new WebSocket(`ws://${address}:${port}?player=${this.id}`);
     ss.on('open', pong)
       .on('ping', pong)
       .on('close', function clear() { clearTimeout(this.pingTimeout) })
 
     // hook up functional listeners
     ss.on('open', () => this._log('connected to signal server'))
+      .on('open', () => this.emit('connect'))
       .on('close', (e) => this.handleStreamerClose(e))
       .on('message', this.onStreamerMessage.bind(this));
 

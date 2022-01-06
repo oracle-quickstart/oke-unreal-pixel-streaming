@@ -41,5 +41,9 @@ http:
     # matchmaker endpoint
     matchmaker:
       loadBalancer:
+        sticky:
+          cookie:
+            secure: true
+            httpOnly: true
         servers:
           - url: http://{{ env "MATCHMAKER_ADDRESS" }}
