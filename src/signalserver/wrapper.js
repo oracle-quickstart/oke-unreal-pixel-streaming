@@ -140,11 +140,11 @@ class CirrusWrapper {
    * add http server extensions
    */
   extendHttpServer() {
-    const { app, streamer } = this.app;
+    const { app, streamerServer } = this.app;
 
     // add healthcheck for readiness
     app.get('/healthz', (req, res) => {
-      const ok = streamer?.readyState === WebSocket.OPEN;
+      const ok = streamerServer.clients.size > 0;
       res.status(ok ? 200 : 503).send(ok ? 'ok' : 'unhealthy');
     });
   }
