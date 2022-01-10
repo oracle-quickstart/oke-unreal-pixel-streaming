@@ -48,7 +48,7 @@ class PlayerConnectionGateway extends Common {
    */
   constructor(options) {
     super();
-    const { server, matchmaker, pool, srv, metrics, lastPingMax, debug } = options || {};
+    const { server, matchmaker, pool, streamSvc, metrics, lastPingMax, debug } = options || {};
     if (!(server instanceof Http.Server)) {
       throw new Error('Http server is required for PlayerConnectionGateway');
     }
@@ -62,14 +62,14 @@ class PlayerConnectionGateway extends Common {
       throw new Error('Metrics adapter instance is required');
     }
 
-    // instantiate discovery
-    this.discovery = new ServiceDisovery(srv);
+    // FUTURE: instantiate stream service discovery discovery
+    // this.discovery = new ServiceDisovery(streamSvc);
 
     // get the maximum time elapsed since last ping
     this.pingMax = lastPingMax || null;
 
     // for debug/development
-    this._debug = !!options.debug;
+    this._debug = !!debug;
 
     // setup lookup/pool finding
     this.pool = pool;
@@ -135,9 +135,6 @@ class PlayerConnectionGateway extends Common {
    * @returns {Promise<object>} matched server
    */
   async nextAvailable(player) {
-    const addresses = await this.discovery.getAddresses();
-    this._log({addresses});
-
     const liveTime = this.pingMax ? Date.now() - this.pingMax : 0;
     for (const server of this.pool.values()) {
       if (!server.offered && // being offered

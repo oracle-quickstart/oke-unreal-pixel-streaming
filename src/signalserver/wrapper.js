@@ -129,10 +129,24 @@ class CirrusWrapper {
    * perform any necessary extensions on the main app objects
    */
   setupExtensions() {
+    this.extendHttpServer();
     this.extendSocketServers();
     this.extendPlayerSockets();
     this.extendMatchmakerSocket();
     return this;
+  }
+
+  /**
+   * add http server extensions
+   */
+  extendHttpServer() {
+    const { app, streamer } = this.app;
+
+    // add healthcheck for readiness
+    app.get('/healthz', (req, res) => {
+      const ok = streamer?.readyState === WebSocket.OPEN;
+      res.status(ok ? 200 : 503).send(ok ? 'ok' : 'unhealthy');
+    });
   }
 
   /**
