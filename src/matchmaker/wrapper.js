@@ -36,8 +36,10 @@ class MatchmakerWrapper {
       lastPingMax: LAST_PING_MAX, // threshold for identifying dead connections
       server: http,           // reuse the http server
       matchmaker,             // attach to matchmaker net.server
-      pool: cirrusServers,    // forward the pool
+      pool: cirrusServers,    // forward the pool connection map
       metrics: this.metrics,  // provide metrics hooks
+      srv: process.env.STREAM_SERVICE_NAME, // name for internal streams service
+      debug: !!process.env.DEBUG, // for debug
     });
     this.registerSocketShutdown(this.gateway.wss);
 
@@ -153,7 +155,8 @@ class MatchmakerWrapper {
     // setup pool monitor to detect lost pings (cirrus pings every 30s)
     setInterval(() => [...cirrusServers.values()]
       .filter(c => c.lastPingReceived < Date.now() - LAST_PING_MAX)
-      .forEach(c => cirrusServers.delete(c)), LAST_PING_MAX / 2);
+      .forEach(c => cirrusServers.delete(c))
+    , LAST_PING_MAX / 2);
 
     // handle cirrus connections (after main matchmaker.js)
     matchmaker.on('connection', connection => {
