@@ -31,6 +31,8 @@ services:
     volumes:
       - ./src/router/config/traefik.yml:/config/traefik.yml
       - ./src/router/config/pod-proxy.yml:/config/pod-proxy.yml
+    networks:
+      - web
   
   # forwarding proxy layer
   podproxy:
@@ -40,6 +42,9 @@ services:
     restart: always
     volumes:
       - ./src/proxy/nginx/default.conf.tmpl:/etc/nginx/conf.d/default.conf.tmpl
+    networks:
+      - web
+      - stream
   
   # web
   player:
@@ -50,6 +55,8 @@ services:
     volumes:
       - ./src/player/web:/usr/share/nginx/html
       - ./src/player/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - web
   
   # cirrus
   signalserver:
@@ -75,6 +82,8 @@ services:
       - --metricsPort=9000
     depends_on:
       - matchmaker
+    networks:
+      - stream
 
   # cirrus
   matchmaker:
@@ -84,6 +93,7 @@ services:
     restart: always
     environment:
       - DEBUG=true
+      - STREAM_SERVICE_NAME=signalserver
     ports:
       - 3000:3000 # http & client websocket
       - 3900:9000 # metrics
@@ -95,6 +105,9 @@ services:
       - --MatchmakerPort=9999
       - --UseHTTPS=0
       - --metricsPort=9000
+    networks:
+      - stream
+      - web
 
   # start turn, even though it won't do much good locally
   turn:
@@ -107,6 +120,8 @@ services:
       - TURN_PASS=bar
     ports:
       - 3478:3478
+    networks:
+      - turn
 
   # turn api
   turn-api:
@@ -123,6 +138,8 @@ services:
       - ENDPOINT_FILE=/endpoints.json
     ports:
       - 3480:3000
+    networks:
+      - turn
 
   # tools container (build only)
   tools:
@@ -130,3 +147,8 @@ services:
     build: ./src/kubetools
     container_name: kubetools
     restart: "no"
+
+networks:
+  web:
+  stream:
+  turn:
