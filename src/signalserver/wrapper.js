@@ -63,12 +63,27 @@ class CirrusWrapper {
    * @param {*} event 
    */
   async shutdown(event) {
-    this._info('processing shutdown handlers for signal', event);
-    await Promise.all([...this.shutdownHandlers.values()]
-      .map(cb => Promise.resolve(cb())))
-      .catch(e => this._error('graceful shutdown error:', e));
-    this._info('shutdown complete. exiting');
-    process.exit(0);
+
+    const doShutdown = () => {
+      this._info('processing shutdown handlers for signal', event);
+      await Promise.all([...this.shutdownHandlers.values()]
+        .map(cb => Promise.resolve(cb())))
+        .catch(e => this._error('graceful shutdown error:', e));
+      this._info('shutdown complete. exiting');
+      process.exit(0);
+    };
+    // check player connections and allow open sessions to remain open until
+    // player disconnects
+    const { playerServer } = this.app;
+    if (playerServer.clients.size) {
+      this._info('defer shutdown until player(s) disconnect or terminationGracePeriodSeconds is exceeded');
+      playerServer.clients.forEach(ws => {
+        ws.send(JSON.stringify({ type: 'sigterm', message: 'stream will shutdown' }));
+        ws.once('close', () => doShutdown());
+      });
+    } else {
+      doShutdown();
+    }
   }
 
   /**

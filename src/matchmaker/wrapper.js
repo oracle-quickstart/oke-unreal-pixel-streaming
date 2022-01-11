@@ -157,7 +157,7 @@ class MatchmakerWrapper {
 
     // setup pool monitor to detect lost pings (cirrus pings every 30s)
     setInterval(() => [...cirrusServers.values()]
-      .filter(c => c.lastPingReceived < Date.now() - LAST_PING_MAX)
+      .filter(c => (c.lastPingReceived < (Date.now() - LAST_PING_MAX)))
       .forEach(c => cirrusServers.delete(c))
     , LAST_PING_MAX / 2);
 
