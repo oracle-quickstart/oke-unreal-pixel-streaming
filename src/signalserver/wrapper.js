@@ -62,9 +62,9 @@ class CirrusWrapper {
    * process shutdown
    * @param {*} event 
    */
-  async shutdown(event) {
+  shutdown(event) {
 
-    const doShutdown = () => {
+    const doShutdown = async () => {
       this._info('processing shutdown handlers for signal', event);
       await Promise.all([...this.shutdownHandlers.values()]
         .map(cb => Promise.resolve(cb())))
