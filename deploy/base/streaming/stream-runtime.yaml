@@ -47,7 +47,8 @@ spec:
         sidecar.istio.io/rewriteAppHTTPProbers: "true"
     spec:
       serviceAccountName: stream-svc-account
-      terminationGracePeriodSeconds: 10
+      # allow a long time (1min) for pod to terminate in case of scale down operations on occupied pods
+      terminationGracePeriodSeconds: 60
       # Require scheduling only to gpu pool nodes by label
       affinity:
         nodeAffinity:
