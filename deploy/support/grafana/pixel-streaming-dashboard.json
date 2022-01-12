@@ -22,7 +22,7 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
   "id": 28,
-  "iteration": 1641918530109,
+  "iteration": 1642001035091,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -488,12 +488,80 @@
       "type": "timeseries"
     },
     {
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "left",
+            "displayMode": "auto",
+            "filterable": false
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "string"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 24,
+        "x": 0,
+        "y": 17
+      },
+      "id": 30,
+      "links": [],
+      "options": {
+        "footer": {
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "8.3.3",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "exemplar": false,
+          "expr": "sum(kube_node_status_capacity{cluster=\"$cluster\", resource=\"nvidia_com_gpu\", container=~\".+\"}) by (node)",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Total GPU",
+      "type": "table"
+    },
+    {
       "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 17
+        "y": 20
       },
       "id": 17,
       "panels": [],
@@ -540,7 +608,7 @@
         "h": 9,
         "w": 7,
         "x": 0,
-        "y": 18
+        "y": 21
       },
       "id": 22,
       "links": [],
@@ -592,7 +660,7 @@
         "h": 9,
         "w": 17,
         "x": 7,
-        "y": 18
+        "y": 21
       },
       "hiddenSeries": false,
       "id": 24,
@@ -687,7 +755,7 @@
         "h": 9,
         "w": 7,
         "x": 0,
-        "y": 27
+        "y": 30
       },
       "hiddenSeries": false,
       "id": 20,
@@ -792,7 +860,7 @@
         "h": 9,
         "w": 17,
         "x": 7,
-        "y": 27
+        "y": 30
       },
       "hiddenSeries": false,
       "id": 26,
@@ -882,7 +950,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 36
+        "y": 39
       },
       "id": 28,
       "panels": [],
@@ -898,7 +966,7 @@
     "list": [
       {
         "current": {
-          "selected": true,
+          "selected": false,
           "text": "Prometheus",
           "value": "Prometheus"
         },
@@ -943,10 +1011,10 @@
         "current": {
           "selected": true,
           "text": [
-            "pixel"
+            "All"
           ],
           "value": [
-            "pixel"
+            "$__all"
           ]
         },
         "definition": "label_values(container_network_receive_packets_total{cluster=\"$cluster\"}, namespace)",
@@ -967,9 +1035,10 @@
       },
       {
         "current": {
+          "isNone": true,
           "selected": false,
-          "text": "daemonset",
-          "value": "daemonset"
+          "text": "None",
+          "value": ""
         },
         "definition": "label_values(namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\",namespace=\"$namespace\", workload=~\".+\"}, workload_type)",
         "hide": 2,
@@ -1054,6 +1123,6 @@
   "timezone": "",
   "title": "OKE Pixel Streaming",
   "uid": "jE4EaIonk",
-  "version": 38,
+  "version": 39,
   "weekStart": ""
 }
