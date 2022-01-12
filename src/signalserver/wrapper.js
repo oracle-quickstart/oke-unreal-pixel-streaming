@@ -62,13 +62,28 @@ class CirrusWrapper {
    * process shutdown
    * @param {*} event 
    */
-  async shutdown(event) {
-    this._info('processing shutdown handlers for signal', event);
-    await Promise.all([...this.shutdownHandlers.values()]
-      .map(cb => Promise.resolve(cb())))
-      .catch(e => this._error('graceful shutdown error:', e));
-    this._info('shutdown complete. exiting');
-    process.exit(0);
+  shutdown(event) {
+
+    const doShutdown = async () => {
+      this._info('processing shutdown handlers for signal', event);
+      await Promise.all([...this.shutdownHandlers.values()]
+        .map(cb => Promise.resolve(cb())))
+        .catch(e => this._error('graceful shutdown error:', e));
+      this._info('shutdown complete. exiting');
+      process.exit(0);
+    };
+    // check player connections and allow open sessions to remain open until
+    // player disconnects
+    const { playerServer } = this.app;
+    if (playerServer.clients.size) {
+      this._info('defer shutdown until player(s) disconnect or terminationGracePeriodSeconds is exceeded');
+      playerServer.clients.forEach(ws => {
+        ws.send(JSON.stringify({ type: 'sigterm', message: 'stream will shutdown' }));
+        ws.once('close', () => doShutdown());
+      });
+    } else {
+      doShutdown();
+    }
   }
 
   /**
@@ -129,10 +144,24 @@ class CirrusWrapper {
    * perform any necessary extensions on the main app objects
    */
   setupExtensions() {
+    this.extendHttpServer();
     this.extendSocketServers();
     this.extendPlayerSockets();
     this.extendMatchmakerSocket();
     return this;
+  }
+
+  /**
+   * add http server extensions
+   */
+  extendHttpServer() {
+    const { app, streamerServer } = this.app;
+
+    // add healthcheck for readiness
+    app.get('/healthz', (req, res) => {
+      const ok = streamerServer.clients.size > 0;
+      res.status(ok ? 200 : 503).send(ok ? 'ok' : 'unhealthy');
+    });
   }
 
   /**

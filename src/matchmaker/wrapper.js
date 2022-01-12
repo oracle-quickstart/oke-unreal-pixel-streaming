@@ -30,14 +30,19 @@ class MatchmakerWrapper {
     this.shutdownHandlers = new Set();
     // deconstruct relevant configs
     const { http, matchmaker, cirrusServers, config: { metricsPort } } = main;
+    // deconstruct env
+    const { DEBUG, NAMESPACE, STREAM_SERVICE_NAME } = process.env;
+    const streamSvc = STREAM_SERVICE_NAME + (NAMESPACE ? `.${NAMESPACE}.svc.cluster.local` : '');
     // instantiate the custom gateway, and metrics
     this.metrics = new MetricsAdapter({ port: metricsPort, prefix: 'matchmaker_' });
     this.gateway = new PlayerConnectionGateway({
       lastPingMax: LAST_PING_MAX, // threshold for identifying dead connections
       server: http,           // reuse the http server
       matchmaker,             // attach to matchmaker net.server
-      pool: cirrusServers,    // forward the pool
+      pool: cirrusServers,    // forward the pool connection map
       metrics: this.metrics,  // provide metrics hooks
+      streamSvc,              // dns name for internal (headless) stream service
+      debug: !!DEBUG,         // debug
     });
     this.registerSocketShutdown(this.gateway.wss);
 
@@ -145,15 +150,16 @@ class MatchmakerWrapper {
     } = this.app;
 
     // add basic healthcheck
-    app.get('/health', (req, res) => res.send('ok'));
+    app.get('/healthz', (req, res) => res.send('ok'));
 
     // add basic list api
     app.get('/list', (req, res) => res.json([...cirrusServers.values()]));
 
     // setup pool monitor to detect lost pings (cirrus pings every 30s)
     setInterval(() => [...cirrusServers.values()]
-      .filter(c => c.lastPingReceived < Date.now() - LAST_PING_MAX)
-      .forEach(c => cirrusServers.delete(c)), LAST_PING_MAX / 2);
+      .filter(c => (c.lastPingReceived < (Date.now() - LAST_PING_MAX)))
+      .forEach(c => cirrusServers.delete(c))
+    , LAST_PING_MAX / 2);
 
     // handle cirrus connections (after main matchmaker.js)
     matchmaker.on('connection', connection => {

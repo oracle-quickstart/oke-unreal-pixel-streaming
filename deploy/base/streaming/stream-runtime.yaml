@@ -3,6 +3,28 @@
 # The Universal Permissive License (UPL), Version 1.0
 # ----------------------------------------------------------------------
 
+# Headless stream service used to to capture streaming endpoints for dns lookup (endpoints)
+apiVersion: v1
+kind: Service
+metadata:
+  name: stream-discovery
+  labels:
+    app: stream-discovery
+    app.kubernetes.io/name: stream-discovery
+spec:
+  type: ClusterIP
+  # make the service headless to get individual pod A records
+  clusterIP: None
+  ports:
+    # advertise signaling websocket/http
+    - port: 3000
+      targetPort: 3000
+      name: http
+  selector:
+    app: stream
+    app.kubernetes.io/name: stream
+---
+# The signal server, pixel streaming, and annotation sidecar
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -25,7 +47,8 @@ spec:
         sidecar.istio.io/rewriteAppHTTPProbers: "true"
     spec:
       serviceAccountName: stream-svc-account
-      terminationGracePeriodSeconds: 10
+      # allow a long time (1min) for pod to terminate in case of scale down operations on occupied pods
+      terminationGracePeriodSeconds: 60
       # Require scheduling only to gpu pool nodes by label
       affinity:
         nodeAffinity:
@@ -79,11 +102,19 @@ spec:
             - --useMatchmaker=true
             - --matchmakerAddress=$(MATCHMAKER_SVC)
             - --matchmakerPort=9999
-            # extensions
+            # # extensions
             - --ueRestEndpoint=http://localhost:8111
             - --rtcConfigSvc=http://$(TURN_API_SVC):3000
             - --metricsPort=9000
-
+          # add probes
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
         # unreal engine pixel streaming runtime with VaRest support
         - name: streamer
           image: pixelstreaming

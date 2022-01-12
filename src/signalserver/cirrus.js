@@ -727,6 +727,7 @@ function sendPlayerDisconnectedToMatchmaker() {
 module.exports = {
   config,
   clientConfig,
+  app,
   playerServer,
   streamerServer,
   streamer,

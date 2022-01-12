@@ -81,6 +81,13 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /config
+          env:
+            - name: STREAM_SERVICE_NAME
+              value: stream-discovery
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
           # args on cirrus.js entrypoint
           args:
             - --configFile=/config/matchmaker.json
@@ -90,11 +97,11 @@ spec:
             - --matchmakerPort=9999
           livenessProbe:
             httpGet:
-              path: /health
+              path: /healthz
               port: http
           readinessProbe:
             httpGet:
-              path: /health
+              path: /healthz
               port: http
           resources:
             limits:

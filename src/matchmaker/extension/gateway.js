@@ -8,6 +8,7 @@ const WebSocket = require('ws');
 const { v4: uuid } = require('uuid');
 const { EventEmitter } = require('events');
 const MetricsAdapter = require('./metrics');
+const ServiceDisovery = require('./discovery');
 
 const isOpen = (ws) => 
   ws && ws.readyState === WebSocket.OPEN;
@@ -47,7 +48,7 @@ class PlayerConnectionGateway extends Common {
    */
   constructor(options) {
     super();
-    const { server, matchmaker, pool, metrics, lastPingMax } = options || {};
+    const { server, matchmaker, pool, streamSvc, metrics, lastPingMax, debug } = options || {};
     if (!(server instanceof Http.Server)) {
       throw new Error('Http server is required for PlayerConnectionGateway');
     }
@@ -61,11 +62,14 @@ class PlayerConnectionGateway extends Common {
       throw new Error('Metrics adapter instance is required');
     }
 
+    // FUTURE: instantiate stream service discovery discovery
+    // this.discovery = new ServiceDisovery(streamSvc);
+
     // get the maximum time elapsed since last ping
     this.pingMax = lastPingMax || null;
 
     // for debug/development
-    this._debug = !!process.env.DEBUG;
+    this._debug = !!debug;
 
     // setup lookup/pool finding
     this.pool = pool;
@@ -108,14 +112,14 @@ class PlayerConnectionGateway extends Common {
 
   /**
    * process waiting player queue and attempt matching to streamers
-   * @returns {void}
+   * @returns {Promise<void>}
    */
-  connectWaitingPlayers() {
+  async connectWaitingPlayers() {
     const size = this.queue.size;
     if (size) {
       this._log(`dequeue ${size} waiting player(s)`);
       for (const player of this.queue.values()) {
-        const server = this.nextAvailable(player);
+        const server = await this.nextAvailable(player);
         if (server) {
           this.assignPlayer(player, server);
         } else {
@@ -128,9 +132,9 @@ class PlayerConnectionGateway extends Common {
   /**
    * obtain a server with available connection
    * @param {VirtualPlayer} player queued/waiting connection
-   * @returns {object} matched server
+   * @returns {Promise<object>} matched server
    */
-  nextAvailable(player) {
+  async nextAvailable(player) {
     const liveTime = this.pingMax ? Date.now() - this.pingMax : 0;
     for (const server of this.pool.values()) {
       if (!server.offered && // being offered
