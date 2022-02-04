@@ -26,7 +26,7 @@ const server = http.createServer((req, res) => {
   } else if (/^\/health/.test(req.url)) {
     const rtc = getRTCPeerConfig();
     const ok = rtc.iceServers.some(s => s.urls.length);
-    res.writeHead(ok ? 200 : 404).end(ok);
+    res.writeHead(ok ? 200 : 404).end(`${ok}`);
   // unknown
   } else {
     res.writeHead(404).end();
