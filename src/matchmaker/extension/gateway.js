@@ -261,7 +261,8 @@ class VirtualPlayer extends Common {
     const spec = this.search.get('id') || this.search.get('address');
     if (spec) {
       // evaluate against matching id or ip address
-      return [id, address].includes(spec);
+      return [id, address].includes(spec) || // exact match
+        spec === '*'; // TODO: wildcard should be an optional config
     } else {
       // assume player just wants an empty session
       return numConnectedClients === 0;
