@@ -6,7 +6,8 @@
 # ----------------------------------------------------------------------
 
 DIR=$(dirname $0)
-ENV_FILE="$DIR/.env"
+DOTENV=$1
+ENV_FILE="$DIR/${DOTENV:-.env}"
 BASE="$DIR/base"
 KOVERLAY="$DIR/overlay"
 

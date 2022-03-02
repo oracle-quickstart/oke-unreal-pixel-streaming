@@ -21,8 +21,8 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 28,
-  "iteration": 1642001035091,
+  "id": 26,
+  "iteration": 1643647716367,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -88,7 +88,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.3.3",
+      "pluginVersion": "8.3.4",
       "targets": [
         {
           "datasource": {
@@ -154,7 +154,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.3.3",
+      "pluginVersion": "8.3.4",
       "targets": [
         {
           "datasource": {
@@ -224,7 +224,7 @@
         },
         "textMode": "auto"
       },
-      "pluginVersion": "8.3.3",
+      "pluginVersion": "8.3.4",
       "targets": [
         {
           "datasource": {
@@ -291,7 +291,7 @@
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "8.3.3",
+      "pluginVersion": "8.3.4",
       "targets": [
         {
           "datasource": {
@@ -536,7 +536,7 @@
         },
         "showHeader": true
       },
-      "pluginVersion": "8.3.3",
+      "pluginVersion": "8.3.4",
       "targets": [
         {
           "datasource": {
@@ -625,7 +625,7 @@
         "showThresholdLabels": false,
         "showThresholdMarkers": true
       },
-      "pluginVersion": "8.3.3",
+      "pluginVersion": "8.3.4",
       "targets": [
         {
           "datasource": {
@@ -633,7 +633,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "exemplar": true,
-          "expr": "sort_desc(sum(irate(container_network_transmit_bytes_total{cluster=\"$cluster\",namespace=\"$namespace\"}[$interval:$resolution])\n* on (namespace,pod)\ngroup_left(workload) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\",namespace=\"$namespace\", workload=~\"turn|stream\"}) by (workload))\n",
+          "expr": "sort_desc(sum(irate(container_network_transmit_bytes_total{cluster=\"$cluster\",namespace=~\"$namespace\"}[$interval:$resolution])\n* on (namespace,pod)\ngroup_left(workload) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\",namespace=~\"$namespace\", workload=~\"turn|stream\"}) by (workload))\n",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -687,7 +687,7 @@
       },
       "paceLength": 10,
       "percentage": false,
-      "pluginVersion": "8.3.3",
+      "pluginVersion": "8.3.4",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -703,7 +703,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "exemplar": true,
-          "expr": "sort_desc(sum(irate(container_network_transmit_bytes_total{cluster=\"$cluster\",namespace=\"$namespace\"}[$interval:$resolution])\n* on (namespace,pod)\ngroup_left(workload,workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\",namespace=\"$namespace\", workload=~\"turn|stream\"}) by (workload))\n",
+          "expr": "sort_desc(sum(irate(container_network_transmit_bytes_total{cluster=\"$cluster\",namespace=~\"$namespace\"}[$interval:$resolution])\n* on (namespace,pod)\ngroup_left(workload,workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\",namespace=~\"$namespace\", workload=~\"turn|stream\"}) by (workload))\n",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -784,7 +784,7 @@
       },
       "paceLength": 10,
       "percentage": false,
-      "pluginVersion": "8.3.3",
+      "pluginVersion": "8.3.4",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -800,7 +800,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "exemplar": true,
-          "expr": "sort_desc(sum(irate(container_network_receive_bytes_total{cluster=\"$cluster\",namespace=\"$namespace\"}[$interval:$resolution])\n* on (namespace,pod)\ngroup_left(workload,workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\",namespace=\"$namespace\", workload=~\"turn|stream\"}) by (workload))\n",
+          "expr": "sort_desc(sum(irate(container_network_receive_bytes_total{cluster=\"$cluster\",namespace=~\"$namespace\"}[$interval:$resolution])\n* on (namespace,pod)\ngroup_left(workload,workload_type) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\",namespace=~\"$namespace\", workload=~\"turn|stream\"}) by (workload))\n",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -887,7 +887,7 @@
       },
       "paceLength": 10,
       "percentage": false,
-      "pluginVersion": "8.3.3",
+      "pluginVersion": "8.3.4",
       "pointradius": 5,
       "points": false,
       "renderer": "flot",
@@ -903,7 +903,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "exemplar": true,
-          "expr": "sort_desc(sum(irate(container_network_receive_bytes_total{cluster=\"$cluster\",namespace=\"$namespace\"}[$interval:$resolution])\n* on (namespace,pod)\ngroup_left(workload) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\",namespace=\"$namespace\", workload=~\"turn|stream\"}) by (workload, workload_type))\n",
+          "expr": "sort_desc(sum(irate(container_network_receive_bytes_total{cluster=\"$cluster\",namespace=~\"$namespace\"}[$interval:$resolution])\n* on (namespace,pod)\ngroup_left(workload) namespace_workload_pod:kube_pod_owner:relabel{cluster=\"$cluster\",namespace=~\"$namespace\", workload=~\"turn|stream\"}) by (workload, workload_type))\n",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1123,6 +1123,6 @@
   "timezone": "",
   "title": "OKE Pixel Streaming",
   "uid": "jE4EaIonk",
-  "version": 39,
+  "version": 4,
   "weekStart": ""
 }

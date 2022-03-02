@@ -144,7 +144,7 @@ aims to offer viability using the most basic/standard dependencies:
     ```sh
     helm upgrade --install ingress-nginx ingress-nginx \
       --repo https://kubernetes.github.io/ingress-nginx \
-      --namespace ingress-nginx --create-namespace
+      --namespace ingress-nginx --create-namespace 
     ```
 
 - Cert Manager: [documentation](https://cert-manager.io/docs/installation/helm/)
@@ -258,7 +258,7 @@ this Pixel Streaming demo deployment is designed using plain
     # get public ip address
     kubectl get svc -A | grep ingress | grep LoadBalancer | awk '{print $5}' | head -n 1
     # or use a hex format
-    printf '%02X' $(kubectl get svc -A | grep LoadBalancer | grep ingress-nginx | awk '{print $5}' | head -n 1 | tr '.' ' '); echo
+    printf '%02x' $(kubectl get svc -A | grep LoadBalancer | grep ingress-nginx | awk '{print $5}' | head -n 1 | tr '.' ' '); echo
     ```
 
     > Set the ip dns name in `.env` below
@@ -407,7 +407,7 @@ metrics.
     ```sh
     kubectl get secret prometheus-stack-grafana \
       -n prometheus \
-      -o jsonpath="{.data.admin-password}" | base64 --decode
+      -o jsonpath="{.data.admin-password}" | base64 --decode; echo
     ```
 
     > The `admin` account password defaults to `prom-operator` in the prometheus helm chart
