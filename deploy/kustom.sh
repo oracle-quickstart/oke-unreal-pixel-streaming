@@ -27,8 +27,8 @@ if [ -z "$OCIR_REPO" ]; then
   echoerr "ERROR: Requires 'OCIR_REPO' variable ex: 'iad.ocir.io/mytenancy/my-repository'"
   exit 1
 fi
-if [ -z "$UNREAL_CONTAINER" ]; then
-  echoerr "ERROR: Requires 'UNREAL_CONTAINER' variable ex: 'pixeldemo'"
+if [ -z "$UNREAL_IMAGE_NAME" ]; then
+  echoerr "ERROR: Requires 'UNREAL_IMAGE_NAME' variable ex: 'pixeldemo'"
   exit 1
 fi
 
@@ -142,8 +142,8 @@ images:
     newTag: ${IMAGE_TAG:-latest}
   # pixel streaming
   - name: pixelstreaming
-    newName: ${OCIR_REPO}/${UNREAL_CONTAINER}
-    newTag: ${IMAGE_TAG:-latest}
+    newName: ${OCIR_REPO}/${UNREAL_IMAGE_NAME}
+    newTag: ${UNREAL_IMAGE_VERSION:-latest}
   # signal server
   - name: signalserver
     newName: ${OCIR_REPO}/signalserver
