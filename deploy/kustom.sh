@@ -39,6 +39,9 @@ fi
 if [ -z "$NAMESPACE" ]; then
   echoerr "WARN: Recommended setting 'NAMESPACE' variable (default: pixel)"
 fi
+if [ -z "$OCIR_SECRET" ]; then
+  echoerr "WARN: Using without 'OCIR_SECRET' private registry imagePullSecret ex: 'ocirsecret'"
+fi
 
 # Generate kustom overlay
 echoerr "Generate kustomization overlay: $KOVERLAY/"
@@ -98,6 +101,62 @@ cat <<EOF > patch-ingress-host.yaml
   value: ${INGRESS_HOST:-pixeldemo.lb-ip-addr.nip.io}
 EOF
 
+# create registry secret patches
+if [ -n "$OCIR_SECRET" ]; then
+
+cat <<EOF > patch-registry-secret.yaml
+# ----------------------------------------------------------------------
+# Copyright (c) 2021, 2022 Oracle and/or its affiliates. All rights reserved.
+# The Universal Permissive License (UPL), Version 1.0
+# ----------------------------------------------------------------------
+
+- op: add
+  path: /spec/template/spec/imagePullSecrets
+  value:
+    - name: "${OCIR_SECRET}"
+EOF
+  # inject into the patchesJson6902
+  PATCH_IMAGE_PULLS_SECRETS="
+  # patch image registry secrets
+  - path: patch-registry-secret.yaml
+    target:
+      group: apps
+      version: v1
+      kind: DaemonSet
+      name: turn
+  - path: patch-registry-secret.yaml
+    target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: turn-api
+  - path: patch-registry-secret.yaml
+    target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: stream
+  - path: patch-registry-secret.yaml
+    target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: matchmaker
+  - path: patch-registry-secret.yaml
+    target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: player
+  - path: patch-registry-secret.yaml
+    target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: podproxy
+"
+fi
+
 # Generate overlay
 echoerr "Generate kustomization.yaml..."
 cat <<EOF > kustomization.yaml
@@ -123,6 +182,7 @@ patchesStrategicMerge:
   - patch-turn-credential.yaml
 
 patchesJson6902:
+  ${PATCH_IMAGE_PULLS_SECRETS}
   # patch the ingress hostname
   - path: patch-ingress-host.yaml
     target:
@@ -132,34 +192,41 @@ patchesJson6902:
       name: pixelstream-ingress
 
 images:
+  # pixel streaming runtime
+  - name: pixelstreaming
+    newName: ${OCIR_REPO}/${UNREAL_IMAGE_NAME}
+    newTag: ${UNREAL_IMAGE_VERSION:-latest}
+
   # turn image
   - name: turn
     newName: ${OCIR_REPO}/turn
     newTag: ${IMAGE_TAG:-latest}
+
   # turn aggregator/discovery
   - name: turn-api
     newName: ${OCIR_REPO}/turn-api
     newTag: ${IMAGE_TAG:-latest}
-  # pixel streaming
-  - name: pixelstreaming
-    newName: ${OCIR_REPO}/${UNREAL_IMAGE_NAME}
-    newTag: ${UNREAL_IMAGE_VERSION:-latest}
+
   # signal server
   - name: signalserver
     newName: ${OCIR_REPO}/signalserver
     newTag: ${IMAGE_TAG:-latest}
+
   # matchmaker
   - name: matchmaker
     newName: ${OCIR_REPO}/matchmaker
     newTag: ${IMAGE_TAG:-latest}
+
   # player webview
   - name: player
     newName: ${OCIR_REPO}/player
     newTag: ${IMAGE_TAG:-latest}
+
   # dynamic proxy svc
   - name: podproxy
     newName: ${OCIR_REPO}/podproxy
     newTag: ${IMAGE_TAG:-latest}
+
   # operator tools (kubectl, docker, jq)
   - name: kubetools
     newName: ${OCIR_REPO}/kubetools

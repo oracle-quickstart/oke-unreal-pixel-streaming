@@ -18,45 +18,8 @@ bases:
   - streaming
   - routing
 
-# patches
-patchesJson6902:
-  # patch image registry secrets
-  - path: patch-registry-secret.yaml
-    target:
-      group: apps
-      version: v1
-      kind: DaemonSet
-      name: turn
-  - path: patch-registry-secret.yaml
-    target:
-      group: apps
-      version: v1
-      kind: Deployment
-      name: turn-api
-  - path: patch-registry-secret.yaml
-    target:
-      group: apps
-      version: v1
-      kind: Deployment
-      name: stream
-  - path: patch-registry-secret.yaml
-    target:
-      group: apps
-      version: v1
-      kind: Deployment
-      name: matchmaker
-  - path: patch-registry-secret.yaml
-    target:
-      group: apps
-      version: v1
-      kind: Deployment
-      name: player
-  - path: patch-registry-secret.yaml
-    target:
-      group: apps
-      version: v1
-      kind: Deployment
-      name: podproxy
+# patches (defer to overlay)
+patchesJson6902: []
 
 # image substitutions (defer to overlay)
 images: []
