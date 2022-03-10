@@ -22,7 +22,7 @@ to original samples from Epic Games
 | [turn-api](./src/turn-api) | `turn` pool WebRTC configuration discovery/aggregator |
 | - | - |
 | [kubetools](./src/kubetools) | Container for sidecar/init `kubectl` utilities in cluster |
-| [unreal](./src/unreal) | Sample `Dockerfile` for an Unreal Pixel Streaming project |
+| [unreal](./src/unreal) | Sample `Dockerfile` for an Unreal Pixel Streaming projects |
 
 ## Usage
 
@@ -44,7 +44,7 @@ See [./deploy](./deploy/README.md)
 ## Contributing
 
 This project welcomes contributions from the community. Before submitting a pull
-request, please review our contribution guide.
+request, see [CONTRIBUTING](./CONTRIBUTING.md) for details.
 
 ## License
 

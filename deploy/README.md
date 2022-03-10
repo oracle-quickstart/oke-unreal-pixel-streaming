@@ -270,10 +270,12 @@ this Pixel Streaming demo deployment is designed using plain
     NAMESPACE=pixel
     # container registry/repo path
     OCIR_REPO=iad.ocir.io/mytenancy/pixeldemo
-    # version (all images use same)
+    # version (all services use same)
     TAG_VERSION=latest
     # name of the unreal container in OCIR 
-    UNREAL_CONTAINER=my-pixelstream
+    UNREAL_IMAGE_NAME=my-pixelstream
+    # version for the streamer image (can differ from the services)
+    UNREAL_IMAGE_VERSION
     # a hostname to use (nip.io hex example)
     INGRESS_HOST=my-pixelstream.aaabb000.nip.io
     # specify initial TURN service username
