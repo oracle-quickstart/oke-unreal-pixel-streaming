@@ -10,27 +10,31 @@ const log = (...args) => console.log(`[${new Date().toUTCString()}] - INFO:`, ..
 const err = (...args) => console.error(`[${new Date().toUTCString()}] - INFO:`, ...args);
 
 // create a single handler to obtain peerCredentials for this node
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
   log(req.method, req.url);
-  // main route
-  if (req.url === '/') {
-    try {
-      const peerConfig = getRTCPeerConfig();
+
+  try {
+    // main route
+    if (req.url === '/') {
+      const peerConfig = await getRTCPeerConfig();
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(peerConfig));
-    } catch (e) {
-      res.writeHead(500).end('Error');
-      err(e);
+    // healthcheck
+    } else if (/^\/health/.test(req.url)) {
+      const rtc = await getRTCPeerConfig();
+      const ok = rtc.iceServers.some(s => s.urls.length);
+      res.writeHead(ok ? 200 : 404).end(`${ok}`);
+    // unknown
+    } else {
+      res.writeHead(404).end();
     }
-  // health check
-  } else if (/^\/health/.test(req.url)) {
-    const rtc = getRTCPeerConfig();
-    const ok = rtc.iceServers.some(s => s.urls.length);
-    res.writeHead(ok ? 200 : 404).end(`${ok}`);
-  // unknown
-  } else {
-    res.writeHead(404).end();
+
+  } catch (e) {
+    res.writeHead(500).end('Error');
+    err(e);
   }
+    
+  
 });
 
 // start on the configured port
