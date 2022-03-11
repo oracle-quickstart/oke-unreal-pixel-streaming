@@ -13,16 +13,16 @@ to original samples from Epic Games
 
 | Service | About |
 |--|--|
-| [signalserver](./src/signalserver) | Unreal Cirrus signal server with extensions |
-| [matchmaker](./src/matchmaker) | Unreal Matchmaker server with extensions |
+| [signalserver](./src/signalserver) | Unreal "Cirrus" signal server with extensions |
+| [matchmaker](./src/matchmaker) | Unreal "Matchmaker" server with extensions |
 | [player](./src/player) | Unreal sample player (web) service with modifications |
-| [proxy](./src/proxy) | NGINX reverse proxy for individual streamer REST API control |
-| [router](./src/router) | Traefik proxy router |
+| [proxy](./src/proxy) | NGINX reverse proxy for individual streamer API interactions |
+| [router](./src/router) | Traefik proxy router (ingress) |
 | [turn](./src/turn) | coTURN daemonset for STUN/TURN |
 | [turn-api](./src/turn-api) | `turn` pool WebRTC configuration discovery/aggregator |
 | - | - |
 | [kubetools](./src/kubetools) | Container for sidecar/init `kubectl` utilities in cluster |
-| [unreal](./src/unreal) | Sample `Dockerfile` for an Unreal Pixel Streaming project |
+| [unreal](./src/unreal) | Sample `Dockerfile` for an Unreal Pixel Streaming projects |
 
 ## Usage
 
@@ -44,10 +44,10 @@ See [./deploy](./deploy/README.md)
 ## Contributing
 
 This project welcomes contributions from the community. Before submitting a pull
-request, please review our contribution guide.
+request, see [CONTRIBUTING](./CONTRIBUTING.md) for details.
 
 ## License
 
-Copyright (c) 2021 Oracle and/or its affiliates.
+Copyright (c) 2021, 2022 Oracle and/or its affiliates.
 Released under the Universal Permissive License (UPL), Version 1.0.
 See [LICENSE](./LICENSE) for more details.

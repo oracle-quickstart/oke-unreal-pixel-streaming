@@ -123,8 +123,12 @@ spec:
             - name: rest
               containerPort: 8111
           resources:
+            # NOTE: since GPU affinity is established above, it is not necessary
+            # to specify the nvidia.com/gpu resource. Rather a CPU request that
+            # corresponds to a portion of a single GPU VM is set - thereby allowing
+            # overcommit on the GPU. This approach is not recommended for best performance.
             requests:
-              cpu: 2
+              cpu: 2500
             # limits:
             #   nvidia.com/gpu: 1
 
