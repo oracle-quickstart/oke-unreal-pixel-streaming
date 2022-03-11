@@ -87,19 +87,34 @@ data:
 EOF
 
 # patch ingress settings
+if [ -n "$INGRESS_HOST" ]; then
 cat <<EOF > patch-ingress-host.yaml
 # ----------------------------------------------------------------------
 # Copyright (c) 2021, 2022 Oracle and/or its affiliates. All rights reserved.
 # The Universal Permissive License (UPL), Version 1.0
 # ----------------------------------------------------------------------
 
-- op: replace
-  path: /spec/tls/0/hosts/0
-  value: ${INGRESS_HOST:-pixeldemo.lb-ip-addr.nip.io}
-- op: replace
+- op: add
+  path: /spec/tls
+  value: 
+    - secretName: pixelstream-tls-secret
+      hosts:
+        - ${INGRESS_HOST}
+- op: add
   path: /spec/rules/0/host
-  value: ${INGRESS_HOST:-pixeldemo.lb-ip-addr.nip.io}
+  value: ${INGRESS_HOST}
 EOF
+# inject into the patchesJson6902
+  PATCH_INGRESS_HOST="
+  # patch the ingress hostname
+  - path: patch-ingress-host.yaml
+    target:
+      group: networking.k8s.io
+      version: v1
+      kind: Ingress
+      name: pixelstream-ingress
+"
+fi
 
 # create registry secret patches
 if [ -n "$OCIR_SECRET" ]; then
@@ -183,13 +198,7 @@ patchesStrategicMerge:
 
 patchesJson6902:
   ${PATCH_IMAGE_PULLS_SECRETS}
-  # patch the ingress hostname
-  - path: patch-ingress-host.yaml
-    target:
-      group: networking.k8s.io
-      version: v1
-      kind: Ingress
-      name: pixelstream-ingress
+  ${PATCH_INGRESS_HOST}
 
 images:
   # pixel streaming runtime
