@@ -71,7 +71,7 @@ spec:
 
               while true; do
                 /tmp/run.sh || true
-                sleep 30
+                sleep 60
               done
         # turn api layer - this returns the RTCPeerConfiguration
         - name: api
@@ -115,6 +115,9 @@ spec:
               path: /healthz
               port: http
           readinessProbe:
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            failureThreshold: 5
             httpGet:
               path: /healthz
               port: http

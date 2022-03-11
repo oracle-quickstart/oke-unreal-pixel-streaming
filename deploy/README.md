@@ -1,9 +1,9 @@
-# WebRTC Pixel Streaming on OKE
+# Unreal Pixel Streaming on OKE
 
-This project represents a scalable pixel streaming deployment on Oracle
+This project represents a container-based Pixel Streaming runtime on Oracle
 Container Engine for Kubernetes (OKE)
 
-- [WebRTC Pixel Streaming on OKE](#webrtc-pixel-streaming-on-oke)
+- [Unreal Pixel Streaming on OKE](#unreal-pixel-streaming-on-oke)
   - [About WebRTC](#about-webrtc)
   - [Cluster Setup](#cluster-setup)
     - [Default Node Pool](#default-node-pool)
@@ -17,12 +17,13 @@ Container Engine for Kubernetes (OKE)
   - [Telemetry](#telemetry)
     - [Install Prometheus Stack](#install-prometheus-stack)
     - [Add DCGM Exporter](#add-dcgm-exporter)
-    - [Prometheus Adapter](#prometheus-adapter)
     - [Access Grafana](#access-grafana)
   - [Scaling](#scaling)
-  - [Limitations](#limitations)
-    - [GPU Shapes](#gpu-shapes)
-  - [TODOs](#todos)
+    - [Prometheus Adapter](#prometheus-adapter)
+    - [Streamer HPA](#streamer-hpa)
+  - [Assumptions and Limitations](#assumptions-and-limitations)
+    - [GPU Allocation](#gpu-allocation)
+    - [TODOs](#todos)
   - [References](#references)
 
 ## About WebRTC
@@ -71,6 +72,9 @@ This node pool is used exclusively for the STUN/TURN services running [coturn][c
 While coTURN is the most prevalent suggestion for hosting our own TURN services, alternates
 like [Pion TURN][pion-turn] may be viable.
 
+> `STUN` and `TURN` are network bound services, so specific attention to network bandwidth
+> and associative compute sizing should be considered.
+
 For public access, the nature of STUN/TURN dictates that the node pool is created
 in a public subnet, with associative security list rules and a public route table
 to work within OKE. In order to leverage host networking, the services are run
@@ -114,7 +118,7 @@ a single node deployment:
     kubectl taint nodes $(kubectl get nodes -l app.pixel/turn=true --no-headers | awk '{print $1}') app.pixel/turn=true:NoSchedule
     ```
 
-    > NOTE: this is done automatically as part of the turn daemonset
+    > NOTE: this is done automatically as part of the `turn` DaemonSet
 
 ### GPU Node Pool
 
@@ -129,6 +133,8 @@ Create the node pool using **Advanced Options** to specify additional k8s labels
 ```text
 app.pixel/gpu=true
 ```
+
+> Read more on this under [GPU Allocation](#gpu-allocation)
 
 The architecture used here for pixel streaming does not require any specific
 network/subnet other than the general OKE node subnet
@@ -263,19 +269,24 @@ this Pixel Streaming demo deployment is designed using plain
 
     > Set the ip dns name in `.env` below
 
-4. Create a `.env` file in this directory, with configurations like the following:
+4. Create a `.env` file in this directory or set environment
+   with configuration variables like the following:
 
     ```sh
     # kubernetes namespace for pixel streaming
     NAMESPACE=pixel
     # container registry/repo path
     OCIR_REPO=iad.ocir.io/mytenancy/pixeldemo
-    # version (all images use same)
+    # container registry secret (optional)
+    OCIR_SECRET=
+    # version (all services use same)
     TAG_VERSION=latest
     # name of the unreal container in OCIR 
-    UNREAL_CONTAINER=my-pixelstream
-    # a hostname to use (nip.io hex example)
-    INGRESS_HOST=my-pixelstream.aaabb000.nip.io
+    UNREAL_IMAGE_NAME=my-pixelstream
+    # version for the streamer image (can differ from the services)
+    UNREAL_IMAGE_VERSION=latest
+    # a hostname to use (nip.io ip example)
+    INGRESS_HOST=my-pixelstream.<load balancer ip>.nip.io
     # specify initial TURN service username
     TURN_USER=userx0000
     # also specify a turn password
@@ -288,16 +299,19 @@ this Pixel Streaming demo deployment is designed using plain
     PROXY_AUTH_USERS='unreal:$apr1$AWc55mzG$TwDga0HZBRTBTGLHdDkUS/'
     ```
 
-5. Use the [./kustom.sh](./kustom.sh) wrapper to generate a kustomization overlay and (optionally) apply:
+5. Use the [./configure.sh](./configure.sh) wrapper to generate a `kustomization`
+   overlay and (optionally) apply:
 
     ```sh
     # run to generate ./overlay and output manifests 
-    ./kustom.sh
+    ./configure.sh
+    # run to generate ./overlay and output manifests with different env path
+    ./configure.sh path/to/.env 
     # generate ./overlay AND apply the manifests
-    ./kustom.sh | kubectl apply -f -
+    ./configure.sh | kubectl apply -f -
     ```
 
-    > **NOTE** to delete, just run `./kustom.sh | kubectl delete -f -`
+    > **NOTE** to delete, just run `./configure.sh | kubectl delete -f -`
 
 6. Inspect objects created in the cluster on `pixel` namespace
 
@@ -360,6 +374,43 @@ tolerations:
     operator: "Exists"
 ```
 
+### Access Grafana
+
+Grafana is installed automatically as part of the `kube-prometheus-stack` chart.
+The installation is pre-loaded with several useful kubernetes dashboards. In order
+to see GPU metrics, we'll add a dashboard related specifically to the `dcgm-exporter`
+metrics.
+
+1. Get the grafana `admin` password:
+
+    ```sh
+    kubectl get secret prometheus-stack-grafana \
+      -n prometheus \
+      -o jsonpath="{.data.admin-password}" | base64 --decode; echo
+    ```
+
+    > The `admin` account password defaults to `prom-operator` in the prometheus helm chart
+
+1. In order to access the grafana user interface, you can enable ingress
+through the `kube-prometheus-stack` `grafana` settings or define it separately.
+
+    - Based on the prometheus installation, the grafana service will be named
+    `prometheus-stack-grafana`. For now, simply open a local port-forward on to the service
+    and load the dashboard.
+
+        ```sh
+        kubectl port-forward svc/prometheus-stack-grafana -n prometheus 8000:80
+        ```
+
+    - Open [localhost:8000](http://localhost:8000) and use the admin credentials found above.
+
+1. Once Grafana is opened, import relevant dashboards:
+
+   1. Custom pixel streaming dashboard included as [json](./support/grafana/pixel-streaming-dashboard.json)
+   2. [DCGM exporter dashboard][dcgm-exporter-dashboard] for overall GPU metrics
+
+## Scaling
+
 ### Prometheus Adapter
 
 In order to acheive the desired autoscaling scenario of reactive
@@ -395,60 +446,65 @@ kubectl get --raw '/apis/custom.metrics.k8s.io/v1beta1/namespaces/pixel/services
 kubectl get --raw '/apis/custom.metrics.k8s.io/v1beta1/namespaces/pixel/services/*/player_stream_pool_ratio' | jq .
 ```
 
-### Access Grafana
+### Streamer HPA
 
-Grafana is installed automatically as part of the `kube-prometheus-stack` chart.
-The installation is pre-loaded with several useful kubernetes dashboards. In order
-to see GPU metrics, we'll add a dashboard related specifically to the `dcgm-exporter`
-metrics.
+With the Prometheus Adapter deployed, custom metrics are used to establish horizontal pod autoscaling on the streaming app deployment.
+Using the `player_stream_pool_ratio`, the following target logic applies:
 
-1. Get the grafana `admin` password:
+- A value of `1` adjusts so that the number of players should equal the number of streams.
+- A value `< 1` (such as 900m) means that streams increase proactively to accommodate future player sessions
 
-    ```sh
-    kubectl get secret prometheus-stack-grafana \
-      -n prometheus \
-      -o jsonpath="{.data.admin-password}" | base64 --decode; echo
-    ```
+> Refer to [stream-hpa.yaml](./base/streaming/stream-hpa.yaml) for the full specification.
 
-    > The `admin` account password defaults to `prom-operator` in the prometheus helm chart
+Scaling down applies the heuristic notion [`pod-deletion-cost`](https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/#pod-deletion-cost) for replicaset scaling order/preference. Note that this feature requires Kubernetes `1.22` or later. Without this, active pods (with connected players) may be terminated indiscriminately.
 
-1. In order to access the grafana user interface, you can enable ingress
-through the `kube-prometheus-stack` `grafana` settings or define it separately.
+Once the total number of requested pods exceeds available cluster resources, it is necessary to configure Cluster Autoscaling. Refer to this [guide][cluster-autoscaling] for details.
 
-    - Based on the prometheus installation, the grafana service will be named
-    `prometheus-stack-grafana`. For now, simply open a local port-forward on to the service
-    and load the dashboard.
+## Assumptions and Limitations
 
-        ```sh
-        kubectl port-forward svc/prometheus-stack-grafana -n prometheus 8000:80
-        ```
+This architecture is partially based on original sample code from Epic Games
+to support Unreal Engine Pixel Streaming (signalserver and matchmaker).
+There are some associated limitations with those services, many of which are
+described [here](https://tensorworks.com.au/blog/an-open-architecture-for-scalable-pixel-streaming/),
+as well as some introduced by this design. This section is meant to call attention
+to some known shortcomings that may require additional work.
 
-    - Open [localhost:8000](http://localhost:8000) and use the admin credentials found above.
+- Authentication is not included. Users should consider adding upstream auth,
+  or extending the [router](../src/router/) configurations.
+- Streamer availability is done via broadcast to matchmaker rather than using
+  service discovery from endpoints.
+- Player websocket connections are queued through matchmaker and forwarded to
+  matched streams.
+- Matchmaker replicas do not share state, therefore stream availability and
+  player session affinity may be unpredictable.
+- Each WebRTC session establishes a peer-to-peer mesh, so the number of
+  connections is n<sup>2</sup> where `n` is the number of participants.
+- The static browser code in [`src/player`](../src/player/) is mostly original,
+  but slightly adapted for this runtime. It is meant purely as a starting point,
+  however is not a model for modern web apps.
+- The demo applies some defaults to the pixel streaming runtime, including
+  a maximum 30 frames per second value. This is an arbitrary selection for demo
+  performance, and may be adjusted in the env [ConfigMap](./base/streaming/config/pixel.properties).
+  Refer to [documentation](https://docs.unrealengine.com/4.27/en-US/SharingAndReleasing/PixelStreaming/PixelStreamingReference/).
 
-1. Once Grafana is opened, be sure to import the [DCGM exporter dashboard][dcgm-exporter-dashboard]
+### GPU Allocation
 
-    - Navigate to `+ -> Import -> 12239` (`12239` is the DCGM dashboard)
+- Containers (and Pods) _normally_ do not share GPUs - as in, there's no
+  overcommitting of GPUs. Each container can request one or more GPUs, but it
+  is not possible to request a fraction of a GPU.
+  - This demo uses the `app.pixel/gpu` label for affinity and proportionate CPU requests to
+    allow more than one stream on a single GPU, which may not be suitable in production.
+    > See [stream-runtime.yaml](./base/streaming/stream-runtime.yaml#L125) for more information.
+- [MIG Support][mig-k8s] (multi-instance GPU partitioning) will require testing with A100 shapes,
 
-## Scaling
+### TODOs
 
-Applies the heuristic notion [`pod-deletion-cost`](https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/#pod-deletion-cost) for replicaset scaling order/preference
-
-[Cluster Autoscaling][cluster-autoscaling];
-
-## Limitations
-
-### GPU Shapes
-
-- Containers (and Pods) do not share GPUs. There's no overcommitting of GPUs.
-- Each container can request one or more GPUs. It is not possible to request a fraction of a GPU.
-- [MIG Support][mig-k8s] (multi-instance GPU partitioning) will require testing with A100 shapes
-
-## TODOs
-
-- Create stun/turn autoscaling metrics
-- Separate ingress with service mesh and virtual service namespacing
-- Revisit autoscale (nodes and pods) based on GPU avail and app design
-- Use [`pod-deletion-cost`](https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/#pod-deletion-cost) for replicaset scaling order/preference
+- Add STUN/TURN metrics and define approach for autoscaling
+- Revisit autoscale (nodes and pods) based on GPU availability and app design
+- Define a k8s service for the streamer, allowing matchmaker (or similar) to
+  perform endpoint discovery and manage player affinity
+- Support distributed matchmaker state (with `redis` for example) to widen
+  the player-to-stream broker system
 
 ## References
 
