@@ -128,7 +128,7 @@ spec:
             # corresponds to a portion of a single GPU VM is set - thereby allowing
             # overcommit on the GPU. This approach is not recommended for best performance.
             requests:
-              cpu: 2500
+              cpu: 2500m
             # limits:
             #   nvidia.com/gpu: 1
 
