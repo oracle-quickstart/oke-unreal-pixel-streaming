@@ -7,7 +7,6 @@ Container Engine for Kubernetes (OKE)
   - [About WebRTC](#about-webrtc)
   - [Cluster Setup](#cluster-setup)
     - [Default Node Pool](#default-node-pool)
-    - [Default Node Pool](#default-node-pool-1)
     - [Turn Node Pool](#turn-node-pool)
     - [GPU Node Pool](#gpu-node-pool)
     - [Dependencies](#dependencies)
@@ -69,18 +68,6 @@ necessary.
 
 > `*` Specific GPU shape can also vary depending on the application and scaling demands.
 It is recommended to evaluate performance and settings accordingly.
-
-### Default Node Pool
-
-The default (or general) node pool is considered for multipurpose installations
-or cluster-wide resources such as ingress controller, telemetry services,
-applications, etc.
-
-For purposes of this example, the standard _Quick Create_ workflow with public API
-and private workers is considered adequate. Select alternatives, or customize as
-necessary.
-
-> Once created, note that the worker node subnet will have a `10.0.10.0/24` CIDR range.
 
 ### Turn Node Pool
 
