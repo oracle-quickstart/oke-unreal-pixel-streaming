@@ -22,7 +22,7 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
   "id": 26,
-  "iteration": 1646929899634,
+  "iteration": 1647031012778,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -299,7 +299,7 @@
             "uid": "PBFA97CFB590B2093"
           },
           "exemplar": true,
-          "expr": "avg(DCGM_FI_DEV_GPU_UTIL) by (instance)",
+          "expr": "DCGM_FI_DEV_GPU_UTIL",
           "instant": false,
           "interval": "",
           "legendFormat": "{{instance}}",
@@ -1127,6 +1127,6 @@
   "timezone": "",
   "title": "OKE Pixel Streaming",
   "uid": "jE4EaIonk",
-  "version": 6,
+  "version": 7,
   "weekStart": ""
 }

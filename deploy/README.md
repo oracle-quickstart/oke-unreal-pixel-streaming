@@ -66,6 +66,9 @@ necessary.
 
 > Once created, note that the worker node subnet will have a `10.0.10.0/24` CIDR range.
 
+> `*` Specific GPU shape can also vary depending on the application and scaling demands.
+It is recommended to evaluate performance and settings accordingly.
+
 ### Turn Node Pool
 
 This node pool is used exclusively for the STUN/TURN services running [coturn][coturn].
