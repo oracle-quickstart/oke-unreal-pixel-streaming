@@ -385,7 +385,7 @@ function playVideoStream() {
 function showPlayOverlay() {
   let img = document.createElement('img');
   img.id = 'playButton';
-  img.src = '/images/Play.png';
+  img.src = 'images/Play.png';
   img.alt = 'Start Streaming';
 	setOverlay('clickableState', img, hookStartStream);
   shouldShowPlayOverlay = false;

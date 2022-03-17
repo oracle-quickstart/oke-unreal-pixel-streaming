@@ -7,7 +7,7 @@
 
 DIR=$(dirname $0)
 DOTENV=$1
-ENV_FILE="$DIR/${DOTENV:-.env}"
+ENV_FILE="${DOTENV:-$DIR/.env}"
 BASE="$DIR/base"
 KOVERLAY="$DIR/overlay"
 
@@ -53,11 +53,6 @@ echoerr "Generate patches..."
 
 # patch the proxy service configuration
 cat <<EOF > patch-proxy-configmap.yaml
-# ----------------------------------------------------------------------
-# Copyright (c) 2021, 2022 Oracle and/or its affiliates. All rights reserved.
-# The Universal Permissive License (UPL), Version 1.0
-# ----------------------------------------------------------------------
-
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -72,10 +67,6 @@ EOF
 
 # patch the turn credentials
 cat <<EOF > patch-turn-credential.yaml
-# ----------------------------------------------------------------------
-# Copyright (c) 2021, 2022 Oracle and/or its affiliates. All rights reserved.
-# The Universal Permissive License (UPL), Version 1.0
-# ----------------------------------------------------------------------
 
 apiVersion: v1
 kind: Secret
@@ -88,12 +79,7 @@ EOF
 
 # patch ingress settings
 if [ -n "$INGRESS_HOST" ]; then
-cat <<EOF > patch-ingress-host.yaml
-# ----------------------------------------------------------------------
-# Copyright (c) 2021, 2022 Oracle and/or its affiliates. All rights reserved.
-# The Universal Permissive License (UPL), Version 1.0
-# ----------------------------------------------------------------------
-
+cat <<EOF > patch-ingress.yaml
 - op: add
   path: /spec/tls
   value: 
@@ -104,10 +90,20 @@ cat <<EOF > patch-ingress-host.yaml
   path: /spec/rules/0/host
   value: ${INGRESS_HOST}
 EOF
+
+# consider alternate path prefix
+if [ -n "$INGRESS_PATH" ]; then
+cat << EOF >> patch-ingress.yaml
+- op: replace
+  path: /spec/rules/0/http/paths/0/path
+  value: ${INGRESS_PATH}/(.*)
+EOF
+fi
+
 # inject into the patchesJson6902
-  PATCH_INGRESS_HOST="
+  PATCH_INGRESS="
   # patch the ingress hostname
-  - path: patch-ingress-host.yaml
+  - path: patch-ingress.yaml
     target:
       group: networking.k8s.io
       version: v1
@@ -120,11 +116,6 @@ fi
 if [ -n "$OCIR_SECRET" ]; then
 
 cat <<EOF > patch-registry-secret.yaml
-# ----------------------------------------------------------------------
-# Copyright (c) 2021, 2022 Oracle and/or its affiliates. All rights reserved.
-# The Universal Permissive License (UPL), Version 1.0
-# ----------------------------------------------------------------------
-
 - op: add
   path: /spec/template/spec/imagePullSecrets
   value:
@@ -198,7 +189,7 @@ patchesStrategicMerge:
 
 patchesJson6902:
   ${PATCH_IMAGE_PULLS_SECRETS}
-  ${PATCH_INGRESS_HOST}
+  ${PATCH_INGRESS}
 
 images:
   # pixel streaming runtime

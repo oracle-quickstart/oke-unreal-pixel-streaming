@@ -126,9 +126,9 @@ spec:
             # NOTE: since GPU affinity is established above, it is not necessary
             # to specify the nvidia.com/gpu resource. Rather a CPU request that
             # corresponds to a portion of a single GPU VM is set - thereby allowing
-            # overcommit on the GPU. This approach is not recommended for best performance.
+            # overcommit on the GPU. This approach may have unpredicatable performance.
             requests:
-              cpu: 2500m
+              cpu: 3750m
             # limits:
             #   nvidia.com/gpu: 1
 
