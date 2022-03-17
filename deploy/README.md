@@ -290,6 +290,8 @@ this Pixel Streaming demo deployment is designed using plain
     UNREAL_IMAGE_VERSION=latest
     # a hostname to use (nip.io ip example)
     INGRESS_HOST=my-pixelstream.<load balancer ip>.nip.io
+    # optionally specify ingress path prefix (ie /game)
+    INGRESS_PATH=
     # specify initial TURN service username
     TURN_USER=userx0000
     # also specify a turn password
