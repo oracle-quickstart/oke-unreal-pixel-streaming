@@ -46,6 +46,7 @@ spec:
         prometheus.io/port: "9000"
         sidecar.istio.io/rewriteAppHTTPProbers: "true"
     spec:
+      imagePullSecrets: []
       serviceAccountName: stream-svc-account
       # allow a long time (1min) for pod to terminate in case of scale down operations on occupied pods
       terminationGracePeriodSeconds: 60
