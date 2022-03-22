@@ -60,6 +60,7 @@ spec:
       annotations:
         sidecar.istio.io/rewriteAppHTTPProbers: "true"
     spec:
+      imagePullSecrets: []
       # config
       volumes:
         - name: config

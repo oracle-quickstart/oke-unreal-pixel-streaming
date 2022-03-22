@@ -10,10 +10,11 @@ Container Engine for Kubernetes (OKE)
     - [Turn Node Pool](#turn-node-pool)
     - [GPU Node Pool](#gpu-node-pool)
     - [Dependencies](#dependencies)
-  - [Build](#build)
+  - [Demo](#demo)
+  - [Image Build](#image-build)
     - [Service Layers](#service-layers)
     - [Pixel Streaming Build](#pixel-streaming-build)
-  - [Deploy](#deploy)
+  - [Custom Deploy](#custom-deploy)
   - [Telemetry](#telemetry)
     - [Install Prometheus Stack](#install-prometheus-stack)
     - [Add DCGM Exporter](#add-dcgm-exporter)
@@ -191,7 +192,20 @@ aims to offer viability using the most basic/standard dependencies:
           --namespace metrics --create-namespace
         ```
 
-## Build
+## Demo
+
+Prebuilt images are included with this repo, along with a demo
+Pixel Streaming image. With a cluster configured per the instructions
+above, you can deploy the entire runtime with the following:
+
+```sh
+kubectl create ns demo
+kubectl apply -f demo.yaml
+```
+
+> See [demo.yaml](./demo.yaml) for complete details
+
+## Image Build
 
 All of the services/constructs are contained within this repo with the exception
 of the Unreal project source code. See more on this [below](#pixel-streaming-build).
@@ -236,7 +250,7 @@ Once repo access is obtained, the basic build process is as follows:
 
 1. Tag and push to OCIR per [documentation](https://docs.oracle.com/en-us/iaas/Content/Registry/Tasks/registrypushingimagesusingthedockercli.htm).
 
-## Deploy
+## Custom Deploy
 
 Although we've used `helm` to install various objects in the kubernetes environment,
 this Pixel Streaming demo deployment is designed using plain
@@ -279,18 +293,22 @@ this Pixel Streaming demo deployment is designed using plain
     # kubernetes namespace for pixel streaming
     NAMESPACE=pixel
     # container registry/repo path
-    OCIR_REPO=iad.ocir.io/mytenancy/pixeldemo
+    REPO=iad.ocir.io/mytenancy/pixeldemo
     # container registry secret (optional)
-    OCIR_SECRET=
-    # version (all services use same)
-    TAG_VERSION=latest
+    REPO_SECRET=
+    # tag version (all services use same)
+    IMAGE_TAG=latest
+    # unreal image container registry
+    UNREAL_REPO=iad.ocir.io/mytenancy/pixeldemo
     # name of the unreal container in OCIR 
     UNREAL_IMAGE_NAME=my-pixelstream
+    # unreal container registry secret (optional)
+    UNREAL_REPO_SECRET=
     # version for the streamer image (can differ from the services)
-    UNREAL_IMAGE_VERSION=latest
+    UNREAL_IMAGE_TAG=latest
     # a hostname to use (nip.io ip example)
     INGRESS_HOST=my-pixelstream.<load balancer ip>.nip.io
-    # optionally specify ingress path prefix (ie /game)
+    # optionally specify ingress path prefix (example: /game)
     INGRESS_PATH=
     # specify initial TURN service username
     TURN_USER=userx0000
@@ -301,7 +319,7 @@ this Pixel Streaming demo deployment is designed using plain
     # configure proxy prefix
     PROXY_PATH_PREFIX=/proxy
     # configure basic auth users (unreal/demo) https://doc.traefik.io/traefik/middlewares/http/basicauth/
-    PROXY_AUTH_USERS='unreal:$apr1$AWc55mzG$TwDga0HZBRTBTGLHdDkUS/'
+    PROXY_AUTH_USERS=
     ```
 
 5. Use the [./configure.sh](./configure.sh) wrapper to generate a `kustomization`

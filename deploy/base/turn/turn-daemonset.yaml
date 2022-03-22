@@ -23,6 +23,7 @@ spec:
         version: 0.0.1
         app.kubernetes.io/name: turn
     spec:
+      imagePullSecrets: []
       serviceAccountName: turn-svc-account
       terminationGracePeriodSeconds: 10
       hostNetwork: true

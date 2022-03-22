@@ -6,10 +6,12 @@
 # ----------------------------------------------------------------------
 
 DIR=$(dirname $0)
+BASE_DIR="$DIR/base"
+OVERLAY_DIR="$DIR/overlay"
+
+# interpret env/properties arg
 DOTENV=$1
 ENV_FILE="${DOTENV:-$DIR/.env}"
-BASE="$DIR/base"
-KOVERLAY="$DIR/overlay"
 
 # echo to stderr
 echoerr() { echo "$@" 1>&2; }
@@ -23,8 +25,12 @@ else
 fi
 
 # validate
-if [ -z "$OCIR_REPO" ]; then
-  echoerr "ERROR: Requires 'OCIR_REPO' variable ex: 'iad.ocir.io/mytenancy/my-repository'"
+if [ -z "$REPO" ]; then
+  echoerr "ERROR: Requires 'REPO' variable ex: 'iad.ocir.io/mytenancy/my-repo'"
+  exit 1
+fi
+if [ -z "$UNREAL_REPO" ]; then
+  echoerr "ERROR: Requires 'UNREAL_REPO' variable ex: 'iad.ocir.io/mytenancy/my-unreal-repo'"
   exit 1
 fi
 if [ -z "$UNREAL_IMAGE_NAME" ]; then
@@ -39,14 +45,14 @@ fi
 if [ -z "$NAMESPACE" ]; then
   echoerr "WARN: Recommended setting 'NAMESPACE' variable (default: pixel)"
 fi
-if [ -z "$OCIR_SECRET" ]; then
-  echoerr "WARN: Using without 'OCIR_SECRET' private registry imagePullSecret ex: 'ocirsecret'"
+if [ -z "$IMAGE_REPO_SECRET" ]; then
+  echoerr "WARN: Using without 'IMAGE_REPO_SECRET' private registry imagePullSecret ex: 'ocirsecret'"
 fi
 
 # Generate kustom overlay
-echoerr "Generate kustomization overlay: $KOVERLAY/"
-mkdir -p $KOVERLAY
-cd $KOVERLAY
+echoerr "Generate kustomization overlay: $OVERLAY_DIR/"
+mkdir -p $OVERLAY_DIR
+cd $OVERLAY_DIR
 
 # Generate patches
 echoerr "Generate patches..."
@@ -113,16 +119,16 @@ fi
 fi
 
 # create registry secret patches
-if [ -n "$OCIR_SECRET" ]; then
+if [ -n "$REPO_SECRET" ]; then
 
 cat <<EOF > patch-registry-secret.yaml
 - op: add
-  path: /spec/template/spec/imagePullSecrets
+  path: /spec/template/spec/imagePullSecrets/-
   value:
-    - name: "${OCIR_SECRET}"
+    name: "${REPO_SECRET}"
 EOF
   # inject into the patchesJson6902
-  PATCH_IMAGE_PULLS_SECRETS="
+  PATCH_IMAGE_PULL_SECRET="
   # patch image registry secrets
   - path: patch-registry-secret.yaml
     target:
@@ -163,6 +169,28 @@ EOF
 "
 fi
 
+# create unreal registry secret patches
+if [ -n "$UNREAL_REPO_SECRET" ]; then
+
+cat <<EOF > patch-unreal-registry-secret.yaml
+- op: add
+  path: /spec/template/spec/imagePullSecrets/-
+  value:
+    name: "${UNREAL_REPO_SECRET}"
+EOF
+  # inject into the patchesJson6902
+  PATCH_UNREAL_PULL_SECRET="
+  # patch unreal image registry secret
+  - path: patch-unreal-registry-secret.yaml
+    target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: stream
+"
+fi
+
+
 # Generate overlay
 echoerr "Generate kustomization.yaml..."
 cat <<EOF > kustomization.yaml
@@ -188,51 +216,52 @@ patchesStrategicMerge:
   - patch-turn-credential.yaml
 
 patchesJson6902:
-  ${PATCH_IMAGE_PULLS_SECRETS}
+  ${PATCH_IMAGE_PULL_SECRET}
+  ${PATCH_UNREAL_PULL_SECRET}
   ${PATCH_INGRESS}
 
 images:
-  # pixel streaming runtime
+  # pixel streaming application
   - name: pixelstreaming
-    newName: ${OCIR_REPO}/${UNREAL_IMAGE_NAME}
-    newTag: ${UNREAL_IMAGE_VERSION:-latest}
+    newName: ${UNREAL_REPO}/${UNREAL_IMAGE_NAME}
+    newTag: ${UNREAL_IMAGE_TAG:-latest}
 
   # turn image
   - name: turn
-    newName: ${OCIR_REPO}/turn
+    newName: ${REPO}/turn
     newTag: ${IMAGE_TAG:-latest}
 
   # turn aggregator/discovery
   - name: turn-api
-    newName: ${OCIR_REPO}/turn-api
+    newName: ${REPO}/turn-api
     newTag: ${IMAGE_TAG:-latest}
 
   # signal server
   - name: signalserver
-    newName: ${OCIR_REPO}/signalserver
+    newName: ${REPO}/signalserver
     newTag: ${IMAGE_TAG:-latest}
 
   # matchmaker
   - name: matchmaker
-    newName: ${OCIR_REPO}/matchmaker
+    newName: ${REPO}/matchmaker
     newTag: ${IMAGE_TAG:-latest}
 
   # player webview
   - name: player
-    newName: ${OCIR_REPO}/player
+    newName: ${REPO}/player
     newTag: ${IMAGE_TAG:-latest}
 
   # dynamic proxy svc
   - name: podproxy
-    newName: ${OCIR_REPO}/podproxy
+    newName: ${REPO}/podproxy
     newTag: ${IMAGE_TAG:-latest}
 
   # operator tools (kubectl, docker, jq)
   - name: kubetools
-    newName: ${OCIR_REPO}/kubetools
+    newName: ${REPO}/kubetools
     newTag: ${IMAGE_TAG:-latest}
 EOF
 
-echoerr "Exec 'kubectl kustomize' from $KOVERLAY/kustomization.yaml"
+echoerr "Exec 'kubectl kustomize' from $OVERLAY_DIR/kustomization.yaml"
 echoerr "---"
 kubectl kustomize .

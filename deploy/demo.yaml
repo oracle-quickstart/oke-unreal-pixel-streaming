@@ -834,7 +834,7 @@ spec:
           name: rest
         resources:
           requests:
-            cpu: 2500m
+            cpu: 3750m
       - args:
         - -ec
         - |
@@ -1321,6 +1321,7 @@ metadata:
     cert-manager.io/issuer: letsencrypt-prod
     kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
     nginx.ingress.kubernetes.io/session-cookie-name: pxstream-ingress
   labels:
     app.kubernetes.io/component: routing
@@ -1339,5 +1340,5 @@ spec:
             name: router
             port:
               number: 80
-        path: /
+        path: /(.*)
         pathType: Prefix

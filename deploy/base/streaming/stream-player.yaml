@@ -39,6 +39,7 @@ spec:
         prometheus.io/port: "9113"
         sidecar.istio.io/rewriteAppHTTPProbers: "true"
     spec:
+      imagePullSecrets: []
       # pod containers
       containers:
         # prometheus exporter
