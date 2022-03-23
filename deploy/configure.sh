@@ -45,8 +45,11 @@ fi
 if [ -z "$NAMESPACE" ]; then
   echoerr "WARN: Recommended setting 'NAMESPACE' variable (default: pixel)"
 fi
-if [ -z "$IMAGE_REPO_SECRET" ]; then
-  echoerr "WARN: Using without 'IMAGE_REPO_SECRET' private registry imagePullSecret ex: 'ocirsecret'"
+if [ -z "$REPO_SECRET" ]; then
+  echoerr "WARN: Using without 'REPO_SECRET' private registry imagePullSecret ex: 'ocirsecret'"
+fi
+if [ -z "$UNREAL_REPO_SECRET" ]; then
+  echoerr "WARN: Using without 'UNREAL_REPO_SECRET' private registry imagePullSecret ex: 'ocirsecret'"
 fi
 
 # Generate kustom overlay
