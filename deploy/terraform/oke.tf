@@ -20,13 +20,19 @@ module "oke-quickstart" {
   # Freeform Tags + Defined Tags. Tags are applied to all resources.
   tag_values = { "freeformTags" = { "Environment" = "Development", "DeploymentType" = "basic", "Quickstart" = "terraform-oke-unreal-pixel-streaming" }, "definedTags" = {} }
 
+  # VCN for OKE arguments
+  vcn_cidr_blocks      = "10.20.0.0/16"
+  extra_security_lists = local.extra_security_lists
+  extra_subnets        = local.extra_subnets
+
   # OKE Node Pool 1 arguments
   node_pool_cni_type_1                 = "FLANNEL_OVERLAY" # Use "OCI_VCN_IP_NATIVE" for VCN Native PODs Network. If the node pool 1 uses the OCI_VCN_IP_NATIVE, the cluster will also be configured with same cni
-  cluster_autoscaler_enabled           = true
+  cluster_autoscaler_enabled           = false
+  node_pool_name_1                     = "Default"
   node_pool_initial_num_worker_nodes_1 = 3                                                                       # Minimum number of nodes in the node pool
   node_pool_max_num_worker_nodes_1     = 10                                                                      # Maximum number of nodes in the node pool
   node_pool_instance_shape_1           = { "instanceShape" = "VM.Standard.E4.Flex", "ocpus" = 2, "memory" = 64 } # If not using a Flex shape, ocpus and memory are ignored
+  extra_node_pools                     = local.extra_node_pools
 
-  # VCN for OKE arguments
-  vcn_cidr_blocks = "10.22.0.0/16"
 }
+
