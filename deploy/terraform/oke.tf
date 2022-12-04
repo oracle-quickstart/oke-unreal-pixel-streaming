@@ -35,6 +35,10 @@ module "oke-quickstart" {
   node_pool_instance_shape_1           = var.node_pool_instance_shape_1
   extra_node_pools                     = local.extra_node_pools
   extra_security_list_name_for_nodes   = "turn_for_nodes_security_list"
+
+  # Cluster Tools
+  ingress_nginx_enabled = true
+  cert_manager_enabled = true
 }
 
 # Extra Node Pools for TURN and GPU node pools
@@ -51,8 +55,8 @@ locals {
     node_pool_boot_volume_size_in_gbs         = "100"
     existent_oke_nodepool_id_for_autoscaler   = null
     node_pool_alternative_subnet              = "turn_nodes_subnet"
-    image_operating_system                    = null
-    image_operating_system_version            = null
+    image_operating_system                    = "Oracle Linux"
+    image_operating_system_version            = "8"
     extra_initial_node_labels                 = [{ key = "app.pixel/turn", value = "true" }]
     cni_type                                  = "FLANNEL_OVERLAY"
     }, {
@@ -67,8 +71,8 @@ locals {
     node_pool_boot_volume_size_in_gbs         = "100"
     existent_oke_nodepool_id_for_autoscaler   = null
     node_pool_alternative_subnet              = null
-    image_operating_system                    = null
-    image_operating_system_version            = null
+    image_operating_system                    = "Oracle Linux"
+    image_operating_system_version            = "8"
     extra_initial_node_labels                 = [{ key = "app.pixel/gpu", value = "true" }]
     cni_type                                  = "FLANNEL_OVERLAY"
   }, ]
