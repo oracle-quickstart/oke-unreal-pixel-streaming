@@ -38,3 +38,23 @@ terraform {
     }
   }
 }
+
+# https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Tasks/contengdownloadkubeconfigfile.htm#notes
+provider "helm" {
+  kubernetes {
+    host                   = local.cluster_endpoint
+    cluster_ca_certificate = local.cluster_ca_certificate
+    exec {
+      api_version = "client.authentication.k8s.io/v1beta1"
+      args        = ["ce", "cluster", "generate-token", "--cluster-id", local.cluster_id, "--region", local.cluster_region]
+      command     = "oci"
+    }
+  }
+}
+
+locals {
+  cluster_endpoint       = yamldecode(module.oke-quickstart.kubeconfig)["clusters"][0]["cluster"]["server"]
+  cluster_ca_certificate = base64decode(yamldecode(module.oke-quickstart.kubeconfig)["clusters"][0]["cluster"]["certificate-authority-data"])
+  cluster_id             = yamldecode(module.oke-quickstart.kubeconfig)["users"][0]["user"]["exec"]["args"][4]
+  cluster_region         = yamldecode(module.oke-quickstart.kubeconfig)["users"][0]["user"]["exec"]["args"][6]
+}
