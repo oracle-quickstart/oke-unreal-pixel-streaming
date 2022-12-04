@@ -30,7 +30,7 @@ variable "vcn_cidr_blocks" {
 ################################################################################
 # Variables: OKE Node Pools
 ################################################################################
-#### ocpus and memory are only used if flex shape is selected
+#### Note: ocpus and memory are only used if flex shape is selected
 variable "node_pool_instance_shape_1" {
   type = map(any)
   default = {
@@ -67,4 +67,13 @@ variable "node_pool_shape_specific_ad_gpu" {
     condition     = var.node_pool_shape_specific_ad_gpu >= 0 && var.node_pool_shape_specific_ad_gpu <= 3
     error_message = "Invalid AD number, should be 0 to get all ADs or 1, 2 or 3 to be a specific AD."
   }
+}
+
+################################################################################
+# Variables: Unreal Pixel Streaming
+################################################################################
+variable "unreal_pixel_streaming_demo" {
+  type        = bool
+  default     = true
+  description = "Deploys Unreal Pixel Streaming Demo deployment helm chart - demo.yaml"
 }

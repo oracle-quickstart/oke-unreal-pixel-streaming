@@ -38,7 +38,7 @@ module "oke-quickstart" {
 
   # Cluster Tools
   ingress_nginx_enabled = true
-  cert_manager_enabled = true
+  cert_manager_enabled  = true
 }
 
 # Extra Node Pools for TURN and GPU node pools
