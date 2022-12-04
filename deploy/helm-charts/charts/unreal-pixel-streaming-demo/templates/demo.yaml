@@ -1,0 +1,1344 @@
+# ----------------------------------------------------------------------
+# Copyright (c) 2021, 2022 Oracle and/or its affiliates. All rights reserved.
+# The Universal Permissive License (UPL), Version 1.0
+# ----------------------------------------------------------------------
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/component: unreal
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  name: stream-svc-account
+  namespace: demo
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/component: turn
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  name: turn-svc-account
+  namespace: demo
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/component: unreal
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  name: stream-role
+  namespace: kube-system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  - pods
+  verbs:
+  - list
+  - get
+  - patch
+  - update
+- apiGroups:
+  - apps
+  resources:
+  - statefulsets
+  - replicasets
+  - daemonsets
+  - deployments
+  verbs:
+  - list
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/component: turn
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  name: turn-role
+  namespace: kube-system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - list
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - endpoints
+  verbs:
+  - create
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/component: unreal
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  name: stream-role-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: stream-role
+subjects:
+- kind: ServiceAccount
+  name: stream-svc-account
+  namespace: demo
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/component: turn
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  name: turn-role-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: turn-role
+subjects:
+- kind: ServiceAccount
+  name: turn-svc-account
+  namespace: demo
+---
+apiVersion: v1
+data:
+  cirrus.json: "{\n\t\"UseFrontend\": false,\n\t\"UseMatchmaker\": false,\n\t\"UseHTTPS\":
+    false,\n\t\"UseAuthentication\": false,\n\t\"LogToFile\": false,\n\t\"EnableWebserver\":
+    false,\n\t\"HomepageFile\": null,\n\t\"HttpPort\": 3000,\n\t\"StreamerPort\":
+    8888\n}"
+  matchmaker.json: "{\n\t\"HttpPort\": 3000,\n\t\"UseHTTPS\": false,\n\t\"MatchmakerPort\":
+    9999,\n\t\"LogToFile\": false,\n  \"enableRedirectionLinks\": false,\n  \"enableRESTAPI\":
+    true\n}"
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/component: unreal
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  name: pixel-app-configs
+  namespace: demo
+---
+apiVersion: v1
+data:
+  EXTRA_ARGS: -RestApiPort=8111 -AllowPixelStreamingCommands -PixelStreamingHideCursor
+    -PixelStreamingWebRTCMaxFps=30 -PixelStreamingWebRTCDisableReceiveAudio -FullStdOutLogOutput
+  RES_X: "1920"
+  RES_Y: "1080"
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/component: unreal
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  name: pixel-stream-configs
+  namespace: demo
+---
+apiVersion: v1
+data:
+  auth.users: ""
+  enable: "false"
+  path.prefix: /proxy
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/component: routing
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  name: routing-pod-proxy-config
+  namespace: demo
+---
+apiVersion: v1
+data:
+  pod-proxy.yml: |-
+    # ----------------------------------------------------------------------
+    # Copyright (c) 2021, 2022 Oracle and/or its affiliates. All rights reserved.
+    # The Universal Permissive License (UPL), Version 1.0
+    # ----------------------------------------------------------------------
+
+    # process variables
+    {{- $includeProxy := and (eq "true" (env "PROXY_ENABLE")) (not (empty (env "PROXY_ADDRESS"))) }}
+    {{- $proxyPrefix := default "/proxy" (env "PROXY_PATH_PREFIX") }}
+    {{- $proxyUserList := compact (splitList "," (default "" (env "PROXY_AUTH_USERS"))) }}
+
+    # optionally define necessary routing if the dynamic proxy is specified
+    {{- if $includeProxy }}
+    http:
+      middlewares:
+        # prefix removal
+        proxy-strip-prefix:
+          stripPrefix:
+            prefixes:
+              - "{{ $proxyPrefix }}"
+        # define auth middleware for proxy
+        {{- if not (empty $proxyUserList) }}
+        proxy-auth:
+          basicAuth:
+            users:
+              {{- range $cred := $proxyUserList }}
+              - "{{ $cred }}"
+              {{- end }}
+        {{- end }}
+
+      routers:
+        # specify the dynamic proxy route
+        pod-proxy:
+          rule: PathPrefix(`{{ $proxyPrefix }}{addr:[a-z0-9/.]+}`)
+          service: pod-proxy
+          middlewares:
+            - proxy-strip-prefix
+            {{- if not (empty $proxyUserList) }}
+            - proxy-auth
+            {{- end }}
+
+      services:
+        # wire the proxy service
+        pod-proxy:
+          loadBalancer:
+            servers:
+              - url: http://{{ env "PROXY_ADDRESS" }}
+
+    {{- end }}
+  traefik.yml: "# ----------------------------------------------------------------------\n#
+    Copyright (c) 2021, 2022 Oracle and/or its affiliates. All rights reserved.\n#
+    The Universal Permissive License (UPL), Version 1.0\n# ----------------------------------------------------------------------\n\n#
+    interpret env vars\n{{- $webPrefix := default \"/\" (env \"WEB_PATH_PREFIX\")
+    }}\n{{- $socketPrefix := default \"/ws\" (env \"SOCKET_PATH_PREFIX\") }}\n\n#
+    http entrypoint\nhttp:\n  # define middleware\n  middlewares:\n    strip-prefix:\n
+    \     stripPrefix:\n        prefixes:\n          - \"{{ $webPrefix }}\"\n          -
+    \"{{ $socketPrefix }}\"\n          - \"/matchmaker\"\n\n  routers:\n    # player
+    web router (GET only)\n    client:\n      rule: \"Method(`GET`) && PathPrefix(`{{
+    $webPrefix }}`)\"\n      service: client\n      middlewares:\n        - strip-prefix\n
+    \   #  matchmaker web sockets \n    matchmaker:\n      rule: \"PathPrefix(`{{
+    $socketPrefix }}`) || PathPrefix(`/matchmaker`)\"\n      service: matchmaker\n
+    \     middlewares:\n        - strip-prefix\n\n  services:\n    # static web player
+    content\n    client:\n      loadBalancer:\n        servers:\n          - url:
+    http://{{ env \"PLAYER_ADDRESS\" }}\n    # matchmaker endpoint\n    matchmaker:\n
+    \     loadBalancer:\n        sticky:\n          cookie:\n            secure: true\n
+    \           httpOnly: true\n        servers:\n          - url: http://{{ env \"MATCHMAKER_ADDRESS\"
+    }}\n"
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/component: routing
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  name: routing-traefik-config
+  namespace: demo
+---
+apiVersion: v1
+data:
+  password: Y2hhbmczbWU=
+  username: dW5yZWFsRDNtbw==
+kind: Secret
+metadata:
+  labels:
+    app.kubernetes.io/component: turn
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  name: turn-secret
+  namespace: demo
+type: Opaque
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    prometheus.io/port: "9000"
+    prometheus.io/scrape: "true"
+  labels:
+    app: matchmaker
+    app.kubernetes.io/component: unreal
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: matchmaker
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  name: matchmaker
+  namespace: demo
+spec:
+  ports:
+  - name: http
+    port: 3000
+    targetPort: 3000
+  - name: socket
+    port: 9999
+    targetPort: 9999
+  - name: metrics
+    port: 9000
+    targetPort: 9000
+  selector:
+    app: matchmaker
+    app.kubernetes.io/component: unreal
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: matchmaker
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: unreal
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: player
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  name: player
+  namespace: demo
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+  selector:
+    app: player
+    app.kubernetes.io/component: unreal
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: player
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: routing
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: podproxy
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  name: podproxy
+  namespace: demo
+spec:
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  selector:
+    app: podproxy
+    app.kubernetes.io/component: routing
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: podproxy
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: routing
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: router
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  name: router
+  namespace: demo
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8888
+  - name: api
+    port: 8080
+    targetPort: 8080
+  selector:
+    app: traefik
+    app.kubernetes.io/component: routing
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: traefik
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: stream-discovery
+    app.kubernetes.io/component: unreal
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: stream-discovery
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  name: stream-discovery
+  namespace: demo
+spec:
+  clusterIP: None
+  ports:
+  - name: http
+    port: 3000
+    targetPort: 3000
+  selector:
+    app: stream
+    app.kubernetes.io/component: unreal
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: stream
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: turn
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: turn
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  name: turn
+  namespace: demo
+spec:
+  ports:
+  - name: http
+    port: 3000
+    protocol: TCP
+    targetPort: 3000
+  selector:
+    app: turn-api
+    app.kubernetes.io/component: turn
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: turn-api
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: unreal
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: matchmaker
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  name: matchmaker
+  namespace: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: matchmaker
+      app.kubernetes.io/component: unreal
+      app.kubernetes.io/managed-by: kustomize
+      app.kubernetes.io/name: matchmaker
+      app.kubernetes.io/part-of: pixelstreaming-stack
+      app.kubernetes.io/version: 0.0.1
+      version: 0.0.1
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/rewriteAppHTTPProbers: "true"
+      labels:
+        app: matchmaker
+        app.kubernetes.io/component: unreal
+        app.kubernetes.io/managed-by: kustomize
+        app.kubernetes.io/name: matchmaker
+        app.kubernetes.io/part-of: pixelstreaming-stack
+        app.kubernetes.io/version: 0.0.1
+        version: 0.0.1
+    spec:
+      containers:
+      - args:
+        - --configFile=/config/matchmaker.json
+        - --HttpPort=3000
+        - --httpPort=3000
+        - --MatchmakerPort=9999
+        - --matchmakerPort=9999
+        env:
+        - name: STREAM_SERVICE_NAME
+          value: stream-discovery
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        image: ghcr.io/oracle-quickstart/oke-unreal-pixel-streaming/matchmaker:latest
+        imagePullPolicy: Always
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+        name: matchmaker
+        ports:
+        - containerPort: 3000
+          name: http
+        - containerPort: 9999
+          name: socket
+        - containerPort: 9000
+          name: metrics
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+        resources:
+          limits:
+            cpu: 200m
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        securityContext:
+          capabilities:
+            add:
+            - NET_BIND_SERVICE
+            drop:
+            - all
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 10001
+        volumeMounts:
+        - mountPath: /config
+          name: config
+      volumes:
+      - configMap:
+          name: pixel-app-configs
+        name: config
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: unreal
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: player
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  name: player
+  namespace: demo
+spec:
+  selector:
+    matchLabels:
+      app: player
+      app.kubernetes.io/component: unreal
+      app.kubernetes.io/managed-by: kustomize
+      app.kubernetes.io/name: player
+      app.kubernetes.io/part-of: pixelstreaming-stack
+      app.kubernetes.io/version: 0.0.1
+      version: 0.0.1
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: "9113"
+        prometheus.io/scrape: "true"
+        sidecar.istio.io/rewriteAppHTTPProbers: "true"
+      labels:
+        app: player
+        app.kubernetes.io/component: unreal
+        app.kubernetes.io/managed-by: kustomize
+        app.kubernetes.io/name: player
+        app.kubernetes.io/part-of: pixelstreaming-stack
+        app.kubernetes.io/version: 0.0.1
+        version: 0.0.1
+    spec:
+      containers:
+      - args:
+        - -nginx.scrape-uri=http://localhost:8888
+        image: nginx/nginx-prometheus-exporter:0.9.0
+        imagePullPolicy: Always
+        name: metrics
+        ports:
+        - containerPort: 9113
+          name: metrics
+        resources:
+          requests:
+            cpu: 5m
+      - image: ghcr.io/oracle-quickstart/oke-unreal-pixel-streaming/player:latest
+        imagePullPolicy: Always
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+        name: player
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8888
+          name: status
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+        resources:
+          limits:
+            cpu: 100m
+            memory: 100Mi
+          requests:
+            cpu: 50m
+            memory: 50Mi
+        securityContext:
+          capabilities:
+            add:
+            - NET_BIND_SERVICE
+            - CHOWN
+            - SETGID
+            - SETUID
+            drop:
+            - all
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 10001
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp-volume
+      volumes:
+      - emptyDir:
+          medium: Memory
+        name: tmp-volume
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: routing
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: podproxy
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  name: podproxy
+  namespace: demo
+spec:
+  selector:
+    matchLabels:
+      app: podproxy
+      app.kubernetes.io/component: routing
+      app.kubernetes.io/managed-by: kustomize
+      app.kubernetes.io/name: podproxy
+      app.kubernetes.io/part-of: pixelstreaming-stack
+      app.kubernetes.io/version: 0.0.1
+      version: 0.0.1
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: "9113"
+        prometheus.io/scrape: "true"
+        sidecar.istio.io/rewriteAppHTTPProbers: "true"
+      labels:
+        app: podproxy
+        app.kubernetes.io/component: routing
+        app.kubernetes.io/managed-by: kustomize
+        app.kubernetes.io/name: podproxy
+        app.kubernetes.io/part-of: pixelstreaming-stack
+        app.kubernetes.io/version: 0.0.1
+        version: 0.0.1
+    spec:
+      containers:
+      - args:
+        - -nginx.scrape-uri=http://localhost:8888
+        image: nginx/nginx-prometheus-exporter:0.9.0
+        imagePullPolicy: Always
+        name: metrics
+        ports:
+        - containerPort: 9113
+          name: metrics
+        resources:
+          requests:
+            cpu: 5m
+      - env:
+        - name: NS_RESOLVER
+          value: kube-dns.kube-system.svc.cluster.local
+        image: ghcr.io/oracle-quickstart/oke-unreal-pixel-streaming/podproxy:latest
+        imagePullPolicy: Always
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+        name: proxy
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8888
+          name: status
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+        resources:
+          limits:
+            cpu: 125m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 32Mi
+        securityContext:
+          capabilities:
+            add:
+            - NET_BIND_SERVICE
+            - CHOWN
+            - SETGID
+            - SETUID
+            drop:
+            - all
+        volumeMounts:
+        - mountPath: /tmp
+          name: tmp-volume
+      volumes:
+      - emptyDir:
+          medium: Memory
+        name: tmp-volume
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: unreal
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: stream
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  name: stream
+  namespace: demo
+spec:
+  selector:
+    matchLabels:
+      app: stream
+      app.kubernetes.io/component: unreal
+      app.kubernetes.io/managed-by: kustomize
+      app.kubernetes.io/name: stream
+      app.kubernetes.io/part-of: pixelstreaming-stack
+      app.kubernetes.io/version: 0.0.1
+      version: 0.0.1
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: "9000"
+        prometheus.io/scrape: "true"
+        sidecar.istio.io/rewriteAppHTTPProbers: "true"
+      labels:
+        app: stream
+        app.kubernetes.io/component: unreal
+        app.kubernetes.io/managed-by: kustomize
+        app.kubernetes.io/name: stream
+        app.kubernetes.io/part-of: pixelstreaming-stack
+        app.kubernetes.io/version: 0.0.1
+        version: 0.0.1
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: app.pixel/gpu
+                operator: Exists
+      containers:
+      - args:
+        - --configFile=/config/cirrus.json
+        - --httpPort=3000
+        - --streamerPort=8888
+        - --UseMatchmaker=true
+        - --MatchmakerAddress=matchmaker
+        - --MatchmakerPort=9999
+        - --useMatchmaker=true
+        - --matchmakerAddress=matchmaker
+        - --matchmakerPort=9999
+        - --ueRestEndpoint=http://localhost:8111
+        - --rtcConfigSvc=http://turn:3000
+        - --metricsPort=9000
+        env:
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        image: ghcr.io/oracle-quickstart/oke-unreal-pixel-streaming/signalserver:latest
+        imagePullPolicy: Always
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+        name: signaler
+        ports:
+        - containerPort: 3000
+          name: http
+        - containerPort: 8888
+          name: stream
+        - containerPort: 9000
+          name: metrics
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+        volumeMounts:
+        - mountPath: /config
+          name: config
+      - env:
+        - name: SIGNAL_URL
+          value: ws://localhost:8888
+        envFrom:
+        - configMapRef:
+            name: pixel-stream-configs
+        image: ghcr.io/oracle-quickstart/oke-unreal-pixel-streaming/pxdemo:latest
+        imagePullPolicy: IfNotPresent
+        name: streamer
+        ports:
+        - containerPort: 8111
+          name: rest
+        resources:
+          requests:
+            cpu: 3750m
+      - args:
+        - -ec
+        - |
+          while true; do
+            # obtain player connections from metrics
+            export PLAYERS=$(curl -s "${SELF_METRICS}" | grep ^signalserver_player_socket_connections | awk '{print $2}')
+
+            # apply player connections as the pod deletion cost
+            kubectl annotate pod "${POD_NAME}" \
+              --namespace "${NAMESPACE}" \
+              --overwrite controller.kubernetes.io/pod-deletion-cost="${PLAYERS}" || true
+            sleep 10
+          done
+        command:
+        - /bin/sh
+        env:
+        - name: SELF_METRICS
+          value: http://localhost:9000/custom
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        image: ghcr.io/oracle-quickstart/oke-unreal-pixel-streaming/kubetools:latest
+        imagePullPolicy: Always
+        name: annotation-agent
+        resources:
+          requests:
+            cpu: 5m
+      serviceAccountName: stream-svc-account
+      terminationGracePeriodSeconds: 60
+      tolerations:
+      - effect: NoSchedule
+        key: nvidia.com/gpu
+        operator: Exists
+      volumes:
+      - configMap:
+          name: pixel-app-configs
+        name: config
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: routing
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: traefik
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  name: traefik
+  namespace: demo
+spec:
+  selector:
+    matchLabels:
+      app: traefik
+      app.kubernetes.io/component: routing
+      app.kubernetes.io/managed-by: kustomize
+      app.kubernetes.io/name: traefik
+      app.kubernetes.io/part-of: pixelstreaming-stack
+      app.kubernetes.io/version: 0.0.1
+      version: 0.0.1
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: "8080"
+        prometheus.io/scrape: "true"
+      labels:
+        app: traefik
+        app.kubernetes.io/component: routing
+        app.kubernetes.io/managed-by: kustomize
+        app.kubernetes.io/name: traefik
+        app.kubernetes.io/part-of: pixelstreaming-stack
+        app.kubernetes.io/version: 0.0.1
+        version: 0.0.1
+    spec:
+      containers:
+      - args:
+        - --ping
+        - --accesslog
+        - --api.insecure=true
+        - --metrics.prometheus.entrypoint=traefik
+        - --providers.file.directory=/config
+        - --entrypoints.http.address=:8888
+        env:
+        - name: WEB_PATH_PREFIX
+          value: /
+        - name: SOCKET_PATH_PREFIX
+          value: /ws
+        - name: PLAYER_ADDRESS
+          value: player:80
+        - name: MATCHMAKER_ADDRESS
+          value: matchmaker:3000
+        - name: PROXY_ADDRESS
+          value: podproxy:8080
+        - name: PROXY_ENABLE
+          valueFrom:
+            configMapKeyRef:
+              key: enable
+              name: routing-pod-proxy-config
+              optional: true
+        - name: PROXY_PATH_PREFIX
+          valueFrom:
+            configMapKeyRef:
+              key: path.prefix
+              name: routing-pod-proxy-config
+              optional: true
+        - name: PROXY_AUTH_USERS
+          valueFrom:
+            configMapKeyRef:
+              key: auth.users
+              name: routing-pod-proxy-config
+              optional: true
+        image: traefik:v2.5
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /ping
+            port: api
+        name: router
+        ports:
+        - containerPort: 8888
+          name: http
+        - containerPort: 8080
+          name: api
+        readinessProbe:
+          httpGet:
+            path: /ping
+            port: api
+        resources:
+          limits:
+            cpu: 200m
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+        securityContext:
+          capabilities:
+            add:
+            - NET_BIND_SERVICE
+            - CHOWN
+            - SETGID
+            - SETUID
+            drop:
+            - all
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 10001
+        volumeMounts:
+        - mountPath: /config
+          name: config
+      volumes:
+      - configMap:
+          name: routing-traefik-config
+        name: config
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: turn
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: turn-api
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  name: turn-api
+  namespace: demo
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: turn
+      app.kubernetes.io/managed-by: kustomize
+      app.kubernetes.io/name: turn-api
+      app.kubernetes.io/part-of: pixelstreaming-stack
+      app.kubernetes.io/version: 0.0.1
+      version: 0.0.1
+  template:
+    metadata:
+      labels:
+        app: turn-api
+        app.kubernetes.io/component: turn
+        app.kubernetes.io/managed-by: kustomize
+        app.kubernetes.io/name: turn-api
+        app.kubernetes.io/part-of: pixelstreaming-stack
+        app.kubernetes.io/version: 0.0.1
+        version: 0.0.1
+    spec:
+      containers:
+      - args:
+        - -ec
+        - |
+          cat - | tee /tmp/run.sh <<EOF
+          # get available turn node ip addresses
+          kubectl get node -l app.pixel/turn=true -o json | \
+            jq -c -r '[.items[] | select(.spec.unschedulable != true) | .status.addresses[] | select(.type == "ExternalIP") | {ip: .address}]' \
+            > /config/endpoints.json
+          EOF
+          chmod +x /tmp/run.sh
+
+          while true; do
+            /tmp/run.sh || true
+            sleep 60
+          done
+        command:
+        - /bin/sh
+        image: ghcr.io/oracle-quickstart/oke-unreal-pixel-streaming/kubetools:latest
+        imagePullPolicy: Always
+        name: aggregator
+        resources:
+          requests:
+            cpu: 5m
+        volumeMounts:
+        - mountPath: /config
+          name: shared
+      - env:
+        - name: PORT
+          value: "3000"
+        - name: ENDPOINT_FILE
+          value: /config/endpoints.json
+        - name: TURN_PORT
+          value: "3478"
+        - name: TURN_USER
+          valueFrom:
+            secretKeyRef:
+              key: username
+              name: turn-secret
+        - name: TURN_PASS
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: turn-secret
+        image: ghcr.io/oracle-quickstart/oke-unreal-pixel-streaming/turn-api:latest
+        imagePullPolicy: Always
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+        name: api
+        ports:
+        - containerPort: 3000
+          name: http
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 5
+          httpGet:
+            path: /healthz
+            port: http
+          initialDelaySeconds: 20
+          periodSeconds: 30
+        resources:
+          limits:
+            cpu: 40m
+            memory: 32Mi
+          requests:
+            cpu: 20m
+            memory: 16Mi
+        securityContext:
+          capabilities:
+            add:
+            - NET_BIND_SERVICE
+            drop:
+            - all
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 10001
+        volumeMounts:
+        - mountPath: /config
+          name: shared
+      serviceAccountName: turn-svc-account
+      volumes:
+      - emptyDir: {}
+        name: shared
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    app.kubernetes.io/component: turn
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: turn
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  name: turn
+  namespace: demo
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: turn
+      app.kubernetes.io/managed-by: kustomize
+      app.kubernetes.io/name: turn
+      app.kubernetes.io/part-of: pixelstreaming-stack
+      app.kubernetes.io/version: 0.0.1
+      version: 0.0.1
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
+      labels:
+        app: turn
+        app.kubernetes.io/component: turn
+        app.kubernetes.io/managed-by: kustomize
+        app.kubernetes.io/name: turn
+        app.kubernetes.io/part-of: pixelstreaming-stack
+        app.kubernetes.io/version: 0.0.1
+        version: 0.0.1
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: app.pixel/turn
+                operator: In
+                values:
+                - "true"
+      containers:
+      - env:
+        - name: INTERNAL_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: TURN_PORT
+          value: "3478"
+        - name: TURN_MIN_PORT
+          value: "49152"
+        - name: TURN_MAX_PORT
+          value: "65535"
+        - name: TURN_REALM
+          value: app.pixel
+        - name: TURN_USER
+          valueFrom:
+            secretKeyRef:
+              key: username
+              name: turn-secret
+        - name: TURN_PASS
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: turn-secret
+        image: ghcr.io/oracle-quickstart/oke-unreal-pixel-streaming/turn:latest
+        imagePullPolicy: Always
+        name: turn
+        ports:
+        - containerPort: 3478
+          hostPort: 3478
+          name: turn-udp
+          protocol: UDP
+        - containerPort: 3478
+          hostPort: 3478
+          name: turn-tcp
+          protocol: TCP
+      hostNetwork: true
+      initContainers:
+      - args:
+        - -exc
+        - |
+          # auto taint the node for the turn pool
+          kubectl taint node "${NODE_NAME}" \
+            --overwrite app.pixel/turn=true:NoSchedule || true
+        command:
+        - /bin/sh
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        image: ghcr.io/oracle-quickstart/oke-unreal-pixel-streaming/kubetools:latest
+        imagePullPolicy: Always
+        name: init
+      serviceAccountName: turn-svc-account
+      terminationGracePeriodSeconds: 10
+      tolerations:
+      - effect: NoSchedule
+        key: app.pixel/turn
+        operator: Exists
+---
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  labels:
+    app.kubernetes.io/component: routing
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: podproxy-autoscaler
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  name: podproxy-autoscaler
+  namespace: demo
+spec:
+  maxReplicas: 10
+  metrics:
+  - resource:
+      name: cpu
+      target:
+        averageUtilization: 50
+        type: Utilization
+    type: Resource
+  minReplicas: 1
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: podproxy
+---
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  labels:
+    app.kubernetes.io/component: routing
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: router-autoscaler
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  name: router-autoscaler
+  namespace: demo
+spec:
+  maxReplicas: 10
+  metrics:
+  - resource:
+      name: cpu
+      target:
+        averageUtilization: 50
+        type: Utilization
+    type: Resource
+  minReplicas: 1
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: traefik
+---
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  labels:
+    app.kubernetes.io/component: unreal
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: stream-autoscaler
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  name: stream-autoscaler
+  namespace: demo
+spec:
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 30
+    scaleUp:
+      policies:
+      - periodSeconds: 15
+        type: Pods
+        value: 2
+      - periodSeconds: 15
+        type: Percent
+        value: 10
+      stabilizationWindowSeconds: 0
+  maxReplicas: 10
+  metrics:
+  - object:
+      describedObject:
+        apiVersion: v1
+        kind: Service
+        name: matchmaker
+      metric:
+        name: player_stream_pool_ratio
+      target:
+        type: Value
+        value: 0.9
+    type: Object
+  minReplicas: 1
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: stream
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/issuer: letsencrypt-prod
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    nginx.ingress.kubernetes.io/session-cookie-name: pxstream-ingress
+  labels:
+    app.kubernetes.io/component: routing
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/part-of: pixelstreaming-stack
+    app.kubernetes.io/version: 0.0.1
+    version: 0.0.1
+  name: pixelstream-ingress
+  namespace: demo
+spec:
+  rules:
+  - http:
+      paths:
+      - backend:
+          service:
+            name: router
+            port:
+              number: 80
+        path: /(.*)
+        pathType: Prefix

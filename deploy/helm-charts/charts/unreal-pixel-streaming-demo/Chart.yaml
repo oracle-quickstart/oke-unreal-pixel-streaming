@@ -1,0 +1,13 @@
+apiVersion: v2
+name: pixel-demo
+description: Unreal Pixel Streaming Demo deployment
+keywords:
+  - unreal-pixel-streaming
+type: application
+version: 0.1.0
+appVersion: 1.0.0
+home: https://github.com/oracle-quickstart/oke-unreal-pixel-streaming
+sources:
+  - https://github.com/oracle-quickstart/oke-unreal-pixel-streaming/tree/main/deploy
+maintainers:
+  - name: junior
