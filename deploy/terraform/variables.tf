@@ -23,7 +23,7 @@ variable "private_key_path" {
 ################################################################################
 ## VCN
 variable "vcn_cidr_blocks" {
-  default     = "10.20.0.0/16"
+  default     = "10.26.0.0/16"
   description = "IPv4 CIDR Blocks for the Virtual Cloud Network (VCN). If use more than one block, separate them with comma. e.g.: 10.20.0.0/16,10.80.0.0/16. If you plan to peer this VCN with another VCN, the VCNs must not have overlapping CIDRs."
 }
 

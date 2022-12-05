@@ -1,0 +1,27 @@
+# Copyright (c) 2020, 2021 Oracle and/or its affiliates. All rights reserved.
+# Licensed under the Universal Permissive License v 1.0 as shown at http://oss.oracle.com/licenses/upl.
+# 
+
+# OCI authentication
+tenancy_ocid     = "ocid1.tenancy....."
+fingerprint      = "" # e.g.: "5f:53:..." or leave blank if using CloudShell
+user_ocid        = "" # e.g.: "ocid1.user..." or leave blank if using CloudShell
+private_key_path = "" # e.g.: "/users/user/.oci/oci_api_key.pem" or leave blank if using CloudShell
+
+# Deployment compartment
+compartment_ocid = "ocid1.compartment...."
+
+# region
+region = "us-ashburn-1"
+
+# VCN CIDRs
+vcn_cidr_blocks = "10.26.0.0/16"
+
+# Extra Node Pools
+## Default Node Pool
+node_pool_instance_shape_1    = { "instanceShape" = "VM.Standard.E4.Flex", "ocpus" = 4, "memory" = 64 }
+## Turn Node Pool
+node_pool_instance_shape_turn    = { "instanceShape" = "VM.Standard.E4.Flex", "ocpus" = 4, "memory" = 64 }
+## GPU Node Pool
+node_pool_instance_shape_gpu    = { "instanceShape" = "BM.GPU.A10.4", "ocpus" = 2, "memory" = 64 } # "BM.GPU.A10.4" "VM.Standard.E4.Flex"
+node_pool_shape_specific_ad_gpu = 2 # 1, 2, 3 depending on the ADs you want to use for GPU instances on the GPU node pool. If you have on every AD, use 0 to random distribute
