@@ -72,8 +72,8 @@ variable "node_pool_shape_specific_ad_gpu" {
 ################################################################################
 # Variables: Unreal Pixel Streaming
 ################################################################################
-variable "unreal_pixel_streaming_demo" {
-  type        = bool
-  default     = true
-  description = "Deploys Unreal Pixel Streaming Demo deployment helm chart - demo.yaml"
-}
+# variable "unreal_pixel_streaming_demo" {
+#   type        = bool
+#   default     = true
+#   description = "Deploys Unreal Pixel Streaming Demo deployment helm chart - demo.yaml"
+# }
