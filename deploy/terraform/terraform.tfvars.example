@@ -23,5 +23,5 @@ node_pool_instance_shape_1    = { "instanceShape" = "VM.Standard.E4.Flex", "ocpu
 ## Turn Node Pool
 node_pool_instance_shape_turn    = { "instanceShape" = "VM.Standard.E4.Flex", "ocpus" = 4, "memory" = 64 }
 ## GPU Node Pool
-node_pool_instance_shape_gpu    = { "instanceShape" = "BM.GPU.A10.4", "ocpus" = 2, "memory" = 64 } # "BM.GPU.A10.4" "VM.Standard.E4.Flex"
+node_pool_instance_shape_gpu    = { "instanceShape" = "BM.GPU.A10.4", "ocpus" = 64, "memory" = 1024 } # "BM.GPU.A10.4" "VM.Standard.E4.Flex"
 node_pool_shape_specific_ad_gpu = 2 # 1, 2, 3 depending on the ADs you want to use for GPU instances on the GPU node pool. If you have on every AD, use 0 to random distribute
