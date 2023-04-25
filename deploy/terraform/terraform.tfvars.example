@@ -15,7 +15,7 @@ compartment_ocid = "ocid1.compartment...."
 region = "us-ashburn-1"
 
 # VCN CIDRs
-vcn_cidr_blocks = "10.26.0.0/16"
+vcn_cidr_blocks = "10.20.0.0/16"
 
 # Extra Node Pools
 ## Default Node Pool
