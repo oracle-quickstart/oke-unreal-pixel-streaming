@@ -1216,7 +1216,7 @@ spec:
         key: app.pixel/turn
         operator: Exists
 ---
-apiVersion: autoscaling/v2beta2
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   labels:
@@ -1243,7 +1243,7 @@ spec:
     kind: Deployment
     name: podproxy
 ---
-apiVersion: autoscaling/v2beta2
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   labels:
@@ -1270,7 +1270,7 @@ spec:
     kind: Deployment
     name: traefik
 ---
-apiVersion: autoscaling/v2beta2
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   labels:
@@ -1306,7 +1306,7 @@ spec:
         name: player_stream_pool_ratio
       target:
         type: Value
-        value: 0.9
+        value: '0.9'
     type: Object
   minReplicas: 1
   scaleTargetRef:
