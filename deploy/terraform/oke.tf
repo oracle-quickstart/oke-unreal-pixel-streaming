@@ -21,7 +21,7 @@ module "oke-quickstart" {
   tag_values = { "freeformTags" = { "Environment" = "Development", "DeploymentType" = "full", "Quickstart" = "terraform-oke-unreal-pixel-streaming" }, "definedTags" = {} }
 
   # VCN for OKE arguments
-  vcn_cidr_blocks                           = "10.20.0.0/16"
+  vcn_cidr_blocks                           = var.vcn_cidr_blocks
   extra_security_lists                      = local.extra_security_lists
   extra_subnets                             = local.extra_subnets
   extra_security_list_name_for_api_endpoint = "turn_for_k8s_api_security_list"
