@@ -3,7 +3,7 @@
 # The Universal Permissive License (UPL), Version 1.0
 # ----------------------------------------------------------------------
 
-apiVersion: autoscaling/v2beta2
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: stream-autoscaler
@@ -53,4 +53,4 @@ spec:
           name: matchmaker
         target:
           type: Value
-          value: 0.90
+          value: '0.90'
