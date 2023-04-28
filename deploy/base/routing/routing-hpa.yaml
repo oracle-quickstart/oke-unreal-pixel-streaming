@@ -4,7 +4,7 @@
 # ----------------------------------------------------------------------
 ---
 # for traefik router
-apiVersion: autoscaling/v2beta2
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: router-autoscaler
@@ -26,7 +26,7 @@ spec:
           averageUtilization: 50
 ---
 # dynamic proxy layer
-apiVersion: autoscaling/v2beta2
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: podproxy-autoscaler
