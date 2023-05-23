@@ -17,6 +17,9 @@ variable "fingerprint" {
 variable "private_key_path" {
   default = ""
 }
+variable "home_region" {
+  default = ""
+}
 
 ################################################################################
 # Variables: OCI Networking
@@ -25,6 +28,14 @@ variable "private_key_path" {
 variable "vcn_cidr_blocks" {
   default     = "10.26.0.0/16"
   description = "IPv4 CIDR Blocks for the Virtual Cloud Network (VCN). If use more than one block, separate them with comma. e.g.: 10.20.0.0/16,10.80.0.0/16. If you plan to peer this VCN with another VCN, the VCNs must not have overlapping CIDRs."
+}
+
+################################################################################
+# Variables: OKE Cluster
+################################################################################
+variable "k8s_version" {
+  default     = "Latest"
+  description = "Kubernetes version installed on your Control Plane and worker nodes. If not version select, will use the latest available."
 }
 
 ################################################################################
