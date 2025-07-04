@@ -225,7 +225,7 @@ tag name can be used, so long as it's repo/tag is known prior to deployment.
 
 ### Pixel Streaming Build
 
-For this piece, an example `Dockerfile` is provided in the [unreal](../unreal/Dockerfile) directory.
+For this piece, an example `Dockerfile` is provided in the [unreal](../src/unreal/Dockerfile) directory.
 
 In this example, it is expected that the `./project` relative path contains the
 full project source, which would be `./project/PixelStreamingDemo.uproject` in
